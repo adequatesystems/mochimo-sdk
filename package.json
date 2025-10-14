@@ -51,9 +51,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mochimodev/mochimo-nodesdk.git"
+    "url": "https://github.com/adequatesystems/mochimo-sdk.git"
   },
   "bugs": {
-    "url": "https://github.com/mochimodev/mochimo-nodesdk/issues"
+    "url": "https://github.com/adequatesystems/mochimo-sdk/issues"
   }
 }
