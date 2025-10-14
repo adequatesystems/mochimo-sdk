@@ -33,11 +33,12 @@ jobs:
       - name: 🔎 Check for console.log statements
         run: |
           echo "Checking for leftover debug statements..."
-          ! grep -r "console\.log\|console\.debug\|debugger" src/ --exclude-dir=node_modules || {
-            echo "❌ Found debug statements in source code!"
+          # Check for console.log/debug/debugger but exclude JSDoc comments and example comments
+          if grep -r "console\.log\|console\.debug\|debugger" src/ --exclude-dir=node_modules | grep -v "^\s*\*" | grep -v "//"; then
+            echo "❌ Found debug statements in executable code!"
             exit 1
-          }
-          echo "✅ No debug statements found"
+          fi
+          echo "✅ No debug statements in executable code"
       
       - name: 📝 Check for TODO/FIXME comments
         run: |
