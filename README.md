@@ -438,8 +438,8 @@ Contributions are welcome! Please ensure:
 ## Support
 
 - GitHub Issues: [Report bugs or request features]
-- Documentation: See `examples/` directory for usage examples
-- API Reference: See `SDK_API_DOCUMENTATION.md` for detailed API documentation
+- Documentation: See [examples/](examples) directory for usage examples
+- API Reference: See [SDK_API_DOCUMENTATION.md](SDK_API_DOCUMENTATION.md) for detailed API documentation
 
 ## Changelog
 
