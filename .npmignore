@@ -1,0 +1,39 @@
+# NPM publish ignore file
+# Only include production-ready files in npm package
+
+# Development files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# CI/CD
+.github/
+
+# Test files (keep test/ directory structure but not populated yet)
+test/verify-sdk-exports.js
+
+# Documentation (keep essential docs only)
+# README.md and SDK_API_DOCUMENTATION.md are included
+
+# Examples are included for users
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test data
+wallet-config.json
+transaction-history.json
+test-output.txt
+tx-test-output.txt
+*-output.txt

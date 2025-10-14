@@ -1,0 +1,59 @@
+{
+  "name": "mochimo-sdk",
+  "version": "1.0.0",
+  "description": "A Node.js SDK for the Mochimo blockchain - address generation, transaction creation/signing, and network broadcasting",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./address": "./src/core/address.js",
+    "./transaction": "./src/core/transaction.js",
+    "./network": "./src/network/broadcast.js",
+    "./wots": "./src/core/wots.js",
+    "./crypto": "./src/core/crypto.js",
+    "./base58": "./src/utils/base58.js"
+  },
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js test/unit",
+    "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js test/integration",
+    "example:address": "node examples/basic/create-address.js",
+    "example:transaction": "node examples/basic/create-transaction.js",
+    "example:broadcast": "node examples/basic/broadcast-transaction.js",
+    "check:balance": "node examples/basic/check-balance.js",
+    "check:mempool": "node examples/basic/check-mempool.js",
+    "search:transactions": "node examples/basic/search-transactions.js",
+    "send:transaction": "node examples/basic/send-transaction.js"
+  },
+  "keywords": [
+    "mochimo",
+    "blockchain",
+    "crypto",
+    "cryptocurrency",
+    "wots",
+    "wots+",
+    "post-quantum",
+    "transaction",
+    "sdk"
+  ],
+  "author": "Adequate Systems",
+  "license": "MOCHIMO CRYPTOCURRENCY ENGINE",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "bs58": "^6.0.0",
+    "crc": "^4.3.2"
+  },
+  "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "jest": "^29.7.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mochimodev/mochimo-nodesdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mochimodev/mochimo-nodesdk/issues"
+  }
+}
