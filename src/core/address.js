@@ -1,7 +1,18 @@
 /**
- * Address generation module
+ * Account Keypair Generation Module
  *
- * Provides functions for generating Mochimo WOTS+ keypairs and addresses.
+ * Provides functions for generating Mochimo WOTS+ keypairs and DSA public keys
+ * for use with Mochimo accounts.
+ *
+ * TERMINOLOGY:
+ * - Account: The persistent user identity in Mochimo
+ * - Account Tag: 20-byte persistent identifier (what users think of as their account number)
+ * - DSA PK: WOTS+ Digital Signature Algorithm public key (one-time use, changes each transaction)
+ * - DSA Hash: 20-byte hash of the DSA PK
+ *
+ * IMPORTANT: What this module generates is a WOTS+ DSA keypair. The DSA PK hash can be used as an
+ * Account Tag on first use (implicit tagging), or you can assign a custom Account Tag for
+ * subsequent transactions to maintain account persistence.
  */
 
 import crypto from 'crypto';
@@ -9,26 +20,30 @@ import { keygen } from './wots.js';
 import { addrFromWots } from './crypto.js';
 
 /**
- * Generate a single Mochimo address with WOTS+ keypair
+ * Generate a single Mochimo WOTS+ keypair for an account
+ *
+ * This generates a one-time-use WOTS+ DSA keypair. The DSA PK hash can be used as an
+ * Account Tag on first use (implicit tagging), or you can assign a custom Account Tag
+ * for subsequent transactions to maintain account persistence.
  *
  * @param {Object} options - Generation options
  * @param {Buffer} [options.seed] - Optional 32-byte seed for deterministic generation
- * @param {number} [options.index=0] - Address index for account number
- * @returns {Object} Address object with publicKey, secretKey, address, and accountNumber
+ * @param {number} [options.index=0] - Keypair index for derivation
+ * @returns {Object} Keypair object with publicKey, secretKey, dsaHash, and accountNumber
  *
  * @example
- * // Generate random address
- * const addr = generateAddress();
- * console.log('Address:', addr.address);
- * console.log('Public Key:', addr.publicKey);
- * console.log('Secret Key:', addr.secretKey);
+ * // Generate random keypair
+ * const keypair = generateAccountKeypair();
+ * console.log('DSA Hash (can be Account Tag):', keypair.dsaHash);
+ * console.log('Public Key:', keypair.publicKey);
+ * console.log('Secret Key:', keypair.secretKey);
  *
  * @example
- * // Generate deterministic address from seed
+ * // Generate deterministic keypair from seed
  * const seed = Buffer.from('0'.repeat(64), 'hex');
- * const addr = generateAddress({ seed });
+ * const keypair = generateAccountKeypair({ seed });
  */
-export function generateAddress(options = {}) {
+export function generateAccountKeypair(options = {}) {
   const { seed = crypto.randomBytes(32), index = 0 } = options;
 
   if (!Buffer.isBuffer(seed) || seed.length !== 32) {
@@ -58,39 +73,40 @@ export function generateAddress(options = {}) {
   // Generate MCM account number (20 hex characters = 10 bytes)
   const accountNumber = index.toString(16).padStart(20, '0');
 
-  // Generate address from WOTS public key
-  const address = addrFromWots(keypair.publicKey);
+  // Generate DSA hash from WOTS public key (40 bytes)
+  const dsaHash = addrFromWots(keypair.publicKey);
+
+  // Account tag is the first 20 bytes of the DSA hash (persistent identifier)
+  const accountTag = dsaHash.slice(0, 20);
 
   return {
-    address,
+    dsaHash,              // 40-byte one-time DSA public key hash
+    accountTag,           // 20-byte persistent account identifier
     accountNumber,
-    publicKey: publicKeyFull.toString('hex'),
-    secretKey: seed.toString('hex'),
-    // Include raw buffers for convenience
-    publicKeyBuffer: publicKeyFull,
-    secretKeyBuffer: seed
+    publicKey: publicKeyFull,
+    secretKey: seed
   };
 }
 
 /**
- * Generate multiple Mochimo addresses
+ * Generate multiple Mochimo WOTS+ keypairs for accounts
  *
- * @param {number} count - Number of addresses to generate
+ * @param {number} count - Number of keypairs to generate
  * @param {Object} options - Generation options
  * @param {Buffer} [options.masterSeed] - Optional 32-byte master seed for deterministic generation
- * @returns {Array<Object>} Array of address objects
+ * @returns {Array<Object>} Array of keypair objects
  *
  * @example
- * // Generate 5 random addresses
- * const addresses = generateAddresses(5);
+ * // Generate 5 random keypairs
+ * const keypairs = generateAccountKeypairs(5);
  *
  * @example
- * // Generate 3 deterministic addresses from master seed
+ * // Generate 3 deterministic keypairs from master seed
  * const masterSeed = Buffer.from('0'.repeat(64), 'hex');
- * const addresses = generateAddresses(3, { masterSeed });
- * // Each address uses: seed[0], SHA256(seed[0]), SHA256(SHA256(seed[0])), ...
+ * const keypairs = generateAccountKeypairs(3, { masterSeed });
+ * // Each keypair uses: seed[0], SHA256(seed[0]), SHA256(SHA256(seed[0])), ...
  */
-export function generateAddresses(count, options = {}) {
+export function generateAccountKeypairs(count, options = {}) {
   if (typeof count !== 'number' || count < 1) {
     throw new Error(`Count must be a positive number, got ${count}`);
   }
@@ -101,7 +117,7 @@ export function generateAddresses(count, options = {}) {
     throw new Error(`Master seed must be a 32-byte Buffer, got ${masterSeed?.length || 'invalid'} bytes`);
   }
 
-  const addresses = [];
+  const keypairs = [];
   let currentSeed = masterSeed;
 
   for (let i = 0; i < count; i++) {
@@ -112,13 +128,13 @@ export function generateAddresses(count, options = {}) {
       seed = currentSeed;
       currentSeed = crypto.createHash('sha256').update(currentSeed).digest();
     } else {
-      // Random: generate new random seed for each address
+      // Random: generate new random seed for each keypair
       seed = crypto.randomBytes(32);
     }
 
-    const address = generateAddress({ seed, index: i });
-    addresses.push(address);
+    const keypair = generateAccountKeypair({ seed, index: i });
+    keypairs.push(keypair);
   }
 
-  return addresses;
+  return keypairs;
 }

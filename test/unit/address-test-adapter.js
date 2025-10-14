@@ -1,37 +1,46 @@
 /**
  * Test adapter for address generation
- * Maps old test API to new SDK API
+ * Maps old test API to new SDK API with updated nomenclature
  */
 
-import { generateAddress as sdkGenerateAddress, generateAddresses as sdkGenerateAddresses } from '../../src/core/address.js';
+import { generateAccountKeypair, generateAccountKeypairs } from '../../src/core/address.js';
 
 /**
- * Adapter for generateAccount - maps to SDK generateAddress
+ * Adapter for generateAccount - maps to SDK generateAccountKeypair
+ * Converts new nomenclature back to test-expected format
  */
 export function generateAccount(seed, accountIndex = 0) {
-  const result = sdkGenerateAddress({ seed, index: accountIndex });
+  const result = generateAccountKeypair({ seed, index: accountIndex });
 
   // Map SDK field names to test-expected field names
+  // accountNumber is just the index formatted as 20 hex chars (matches Go implementation)
+  const accountNumber = accountIndex.toString(16).padStart(20, '0');
+
   return {
-    mcmAccountNumber: result.accountNumber,
-    wotsPublicKey: result.publicKey,
-    wotsSecretKey: result.secretKey
+    mcmAccountNumber: accountNumber,
+    wotsPublicKey: result.publicKey.toString('hex'),
+    wotsSecretKey: result.secretKey.toString('hex')
   };
 }
 
 /**
- * Adapter for generateAccounts - maps to SDK generateAddresses
+ * Adapter for generateAccounts - maps to SDK generateAccountKeypairs
  */
 export function generateAccounts(count, masterSeed = null) {
   const options = masterSeed ? { masterSeed } : {};
-  const addresses = sdkGenerateAddresses(count, options);
+  const keypairs = generateAccountKeypairs(count, options);
 
   // Map SDK format to test-expected format
   return {
-    accounts: addresses.map(addr => ({
-      mcmAccountNumber: addr.accountNumber,
-      wotsPublicKey: addr.publicKey,
-      wotsSecretKey: addr.secretKey
-    }))
+    accounts: keypairs.map((keypair, idx) => {
+      // accountNumber is just the index formatted as 20 hex chars (matches Go)
+      const accountNumber = idx.toString(16).padStart(20, '0');
+
+      return {
+        mcmAccountNumber: accountNumber,
+        wotsPublicKey: keypair.publicKey.toString('hex'),
+        wotsSecretKey: keypair.secretKey.toString('hex')
+      };
+    })
   };
 }

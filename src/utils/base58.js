@@ -20,7 +20,7 @@ export function addrTagToBase58(tag) {
 
   // Append in little-endian
   combined[20] = crc & 0xFF;
-  combined[21] = (crc >> 8) & 0xFF;
+  combined[21] = (crc >>> 8) & 0xFF;
 
   return bs58.encode(combined);
 }

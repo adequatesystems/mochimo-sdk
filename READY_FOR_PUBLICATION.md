@@ -141,7 +141,7 @@ This is correctly specified in `package.json` as `"license": "MOCHIMO CRYPTOCURR
 **A: YES**, but they won't be published!
 
 - 90% are Jest and its dependencies (testing only)
-- When users install with `npm install mochimo-sdk`, they only get `bs58` and `crc`
+- When users install with `npm install mochimo`, they only get `bs58` and `crc`
 - Your `.npmignore` already excludes everything unnecessary
 
 **Don't delete node_modules** - they're needed for:
@@ -174,7 +174,7 @@ npm publish --tag beta
 
 After publishing, users can install with:
 ```bash
-npm install mochimo-sdk
+npm install mochimo
 ```
 
 They will get:

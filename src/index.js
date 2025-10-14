@@ -2,13 +2,23 @@
  * Mochimo Node.js SDK
  *
  * A complete SDK for interacting with the Mochimo blockchain network.
- * Supports address generation, transaction creation/signing, and network broadcasting.
+ * Supports account keypair generation, transaction creation/signing, and network broadcasting.
  *
- * @module mochimo-sdk
+ * TERMINOLOGY GUIDE:
+ * - Account: The persistent user identity in Mochimo
+ * - Account Tag: 20-byte persistent identifier
+ * - DSA PK: WOTS+ public key (one-time use)
+ * - Ledger Address: 40-byte blockchain entry (Account Tag + DSA Hash)
+ *
+ * @module mochimo
  */
 
 // Core functionality
-export { generateAddress, generateAddresses } from './core/address.js';
+export {
+  generateAccountKeypair,
+  generateAccountKeypairs
+} from './core/address.js';
+
 export { createTransaction, signTransaction, serializeTransaction } from './core/transaction.js';
 
 // Network functionality
@@ -22,17 +32,19 @@ export {
   validateBase58Tag as decodeBase58WithChecksum
 } from './utils/base58.js';
 
+// Address utilities
 export {
-  validateAddress,
-  validateTag,
-  extractTag,
-  extractDsa,
-  isImplicitAddress,
-  constructAddress,
-  formatAddress,
-  getAddressInfo
+  validateLedgerAddress,
+  validateAccountTag,
+  extractAccountTag,
+  extractDsaHash,
+  isImplicitAccount,
+  constructLedgerAddress,
+  formatLedgerAddress,
+  getAccountInfo
 } from './utils/address-utils.js';
 
+// Transaction builder utilities
 export {
   buildTransaction,
   prepareTransactionFromWallet,

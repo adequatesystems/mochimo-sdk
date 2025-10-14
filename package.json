@@ -1,5 +1,5 @@
 {
-  "name": "mochimo-sdk",
+  "name": "mochimo",
   "version": "1.0.0",
   "description": "A Node.js SDK for the Mochimo blockchain - address generation, transaction creation/signing, and network broadcasting",
   "type": "module",

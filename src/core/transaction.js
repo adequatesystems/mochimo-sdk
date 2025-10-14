@@ -7,14 +7,14 @@
 import crypto from 'crypto';
 import { keygen, sign } from './wots.js';
 import { addrFromWots } from './crypto.js';
-import { validateTag, extractTag, extractDsa, isImplicitAddress } from '../utils/address-utils.js';
+import { validateAccountTag, extractAccountTag, extractDsaHash, isImplicitAccount } from '../utils/address-utils.js';
 
 // Constants matching MCM 3.0 protocol
-const ADDR_TAG_LEN = 20;    // Address Tag length (bytes)
-const ADDR_REF_LEN = 16;    // Address Reference length (bytes)
-const TX_AMOUNT = 8;        // Transaction amount field size
-const WOTS_ADDR_LEN = 32;   // WOTS+ Address Scheme length
-const HASHLEN = 32;         // SHA-256 hash length
+const ACCOUNT_TAG_LEN = 20;    // Account Tag length (bytes) - persistent identifier
+const ACCOUNT_REF_LEN = 16;    // Account Reference (memo) length (bytes)
+const TX_AMOUNT = 8;           // Transaction amount field size
+const WOTS_ADDR_LEN = 32;      // WOTS+ Address Scheme length
+const HASHLEN = 32;            // SHA-256 hash length
 
 // Transaction type codes
 const TXDAT_MDST = 0x00;    // Multi-Destination type
@@ -37,7 +37,7 @@ const TXDSA_WOTS = 0x00;    // WOTS+ DSA type
  */
 function validateReference(ref) {
   if (!ref || ref.length === 0) return true;
-  if (ref.length > ADDR_REF_LEN) return false;
+  if (ref.length > ACCOUNT_REF_LEN) return false;
 
   const states = {
     START: 0,
@@ -104,28 +104,28 @@ function validateReference(ref) {
 /**
  * Creates a Multi-Destination Structure (MDST)
  *
- * @param {string} address - Destination address (20 hex characters = 10 bytes)
- * @param {string} memo - Transaction memo (max 16 characters)
+ * @param {string} accountTag - Destination account tag (20 hex characters = 10 bytes)
+ * @param {string} memo - Transaction memo/reference (max 16 characters)
  * @param {number|bigint} amount - Amount in nanoMCM
  * @returns {Object} MDST structure with tag, ref, and amount buffers
  */
-function createMDST(address, memo, amount) {
-  if (!address || address.length !== 40) {
-    throw new Error('Destination address must be 40 hex characters (20 bytes)');
+function createMDST(accountTag, memo, amount) {
+  if (!accountTag || accountTag.length !== 40) {
+    throw new Error('Destination account tag must be 40 hex characters (20 bytes)');
   }
 
   if (!validateReference(memo)) {
     throw new Error('Invalid memo format (max 16 chars: A-Z, 0-9, dash)');
   }
 
-  // Tag is 20 bytes (ADDR_TAG_LEN)
-  const tagBytes = Buffer.from(address, 'hex');
-  if (tagBytes.length !== ADDR_TAG_LEN) {
-    throw new Error(`Destination address decoded to ${tagBytes.length} bytes, expected ${ADDR_TAG_LEN}`);
+  // Account Tag is 20 bytes (ACCOUNT_TAG_LEN)
+  const tagBytes = Buffer.from(accountTag, 'hex');
+  if (tagBytes.length !== ACCOUNT_TAG_LEN) {
+    throw new Error(`Destination account tag decoded to ${tagBytes.length} bytes, expected ${ACCOUNT_TAG_LEN}`);
   }
 
-  // Ref is 16 bytes (ADDR_REF_LEN) - pad with zeros
-  const refBytes = Buffer.alloc(ADDR_REF_LEN);
+  // Ref is 16 bytes (ACCOUNT_REF_LEN) - pad with zeros
+  const refBytes = Buffer.alloc(ACCOUNT_REF_LEN);
   if (memo) {
     Buffer.from(memo, 'utf8').copy(refBytes, 0);
   }
@@ -135,8 +135,8 @@ function createMDST(address, memo, amount) {
   amountBytes.writeBigUInt64LE(BigInt(amount), 0);
 
   return {
-    tag: tagBytes,      // 20 bytes
-    ref: refBytes,      // 16 bytes
+    tag: tagBytes,      // 20 bytes (Account Tag)
+    ref: refBytes,      // 16 bytes (memo/reference)
     amount: amountBytes // 8 bytes
   };
 }
@@ -144,15 +144,15 @@ function createMDST(address, memo, amount) {
 /**
  * Creates a transaction header (TXHDR)
  *
- * @param {Buffer} srcAddr - Source address (40 bytes)
- * @param {Buffer} chgAddr - Change address (40 bytes)
+ * @param {Buffer} srcLedgerAddr - Source ledger address (40 bytes: Account Tag + DSA Hash)
+ * @param {Buffer} chgLedgerAddr - Change ledger address (40 bytes: Account Tag + DSA Hash)
  * @param {number|bigint} sendTotal - Total amount to send
  * @param {number|bigint} changeTotal - Total change amount
  * @param {number|bigint} feeTotal - Total fee amount
  * @param {number} blkToLive - Blocks to live (0 for default)
  * @returns {Object} Transaction header structure
  */
-function createTXHDR(srcAddr, chgAddr, sendTotal, changeTotal, feeTotal, blkToLive = 0) {
+function createTXHDR(srcLedgerAddr, chgLedgerAddr, sendTotal, changeTotal, feeTotal, blkToLive = 0) {
   const options = Buffer.alloc(4);
   options[0] = TXDAT_MDST;
   options[1] = TXDSA_WOTS;
@@ -173,8 +173,8 @@ function createTXHDR(srcAddr, chgAddr, sendTotal, changeTotal, feeTotal, blkToLi
 
   return {
     options,
-    srcAddr,
-    chgAddr,
+    srcAddr: srcLedgerAddr,
+    chgAddr: chgLedgerAddr,
     sendTotal: sendTotalBuf,
     changeTotal: changeTotalBuf,
     feeTotal: feeTotalBuf,
@@ -225,17 +225,17 @@ function serializeTXTLR(tlr) {
 /**
  * Create and sign a Mochimo transaction
  *
- * IMPORTANT: Mochimo uses address tags for account persistence across WOTS+ signatures.
- * - For first-time addresses (implicit tag): tag equals the WOTS DSA hash
- * - For subsequent transactions: tag persists from source to change address
- * - The source tag MUST move to the change address to maintain account binding
+ * IMPORTANT: Mochimo uses Account Tags for account persistence across WOTS+ signatures.
+ * - For first-time accounts (implicit tag): Account Tag equals the DSA PK hash
+ * - For subsequent transactions: Account Tag persists from source to change
+ * - The source Account Tag MUST move to the change account to maintain account binding
  *
  * @param {Object} params - Transaction parameters
- * @param {string} params.srcTag - Source address tag (40 hex characters = 20 bytes). This is the account identifier that persists across transactions and MUST move to the change address.
- * @param {string} params.sourcePk - Source public key (4416 hex characters)
- * @param {string} params.changePk - Change public key (4416 hex characters) - NEW WOTS+ key for change
+ * @param {string} params.srcTag - Source account tag (40 hex characters = 20 bytes). This is the persistent account identifier that MUST move to the change account.
+ * @param {string} params.sourcePk - Source DSA public key (4416 hex characters = 2208 bytes)
+ * @param {string} params.changePk - Change DSA public key (4416 hex characters = 2208 bytes) - NEW WOTS+ key for next transaction
  * @param {number|bigint} params.balance - Source account balance in nanoMCM
- * @param {string} params.dstAddress - Destination address tag only (40 hex characters = 20 bytes)
+ * @param {string} params.dstAccountTag - Destination account tag only (40 hex characters = 20 bytes)
  * @param {number|bigint} params.amount - Amount to send in nanoMCM
  * @param {string} params.secret - Secret key for signing (64 hex characters)
  * @param {string} [params.memo=''] - Transaction memo (max 16 characters)
@@ -244,19 +244,19 @@ function serializeTXTLR(tlr) {
  * @returns {Object} Transaction object with hex data and metadata
  *
  * @example
- * // First transaction from implicit address (tag == DSA)
+ * // First transaction from implicit account (Account Tag == DSA Hash)
  * const tx = createTransaction({
- *   srcTag: 'ab8599ef698c629d499909917d15c291dddc2760', // Tag from ledger
- *   sourcePk: sourceAddress.publicKey,
- *   changePk: changeAddress.publicKey, // New WOTS+ key
+ *   srcTag: 'ab8599ef698c629d499909917d15c291dddc2760', // Account Tag from ledger
+ *   sourcePk: sourceKeypair.publicKey,
+ *   changePk: changeKeypair.publicKey, // New WOTS+ key
  *   balance: 10000,
- *   dstAddress: 'bef52f1f806bf3ecc2f837ba2555d34972793e4b',
+ *   dstAccountTag: 'bef52f1f806bf3ecc2f837ba2555d34972793e4b',
  *   amount: 5000,
- *   secret: sourceAddress.secretKey,
+ *   secret: sourceKeypair.secretKey,
  *   memo: 'PAYMENT',
  *   fee: 500
  * });
- * // Result: Change address will be srcTag + changePk DSA hash
+ * // Result: Change ledger entry will be srcTag + changePk DSA hash
  */
 export function createTransaction(params) {
   const {
@@ -264,7 +264,7 @@ export function createTransaction(params) {
     sourcePk,
     changePk,
     balance,
-    dstAddress,
+    dstAccountTag,
     amount,
     secret,
     memo = '',
@@ -274,14 +274,16 @@ export function createTransaction(params) {
 
   // === COMPREHENSIVE INPUT VALIDATION ===
 
-  // Validate source tag (account identifier that persists)
+  const destinationTag = dstAccountTag;
+
+  // Validate source account tag (persistent identifier)
   let srcTagBytes;
   try {
-    srcTagBytes = validateTag(srcTag, 'srcTag');
+    srcTagBytes = validateAccountTag(srcTag, 'srcTag');
   } catch (error) {
-    throw new Error(`Invalid source tag: ${error.message}\n` +
-      `HINT: srcTag must be the 20-byte account identifier (40 hex chars). ` +
-      `Extract it from your source address using the first 20 bytes.`);
+    throw new Error(`Invalid source account tag: ${error.message}\n` +
+      `HINT: srcTag must be the 20-byte persistent account identifier (40 hex chars). ` +
+      `Extract it from your source ledger address using the first 20 bytes.`);
   }
 
   // Validate source public key
@@ -327,13 +329,13 @@ export function createTransaction(params) {
       `have ${balance} nanoMCM, short ${shortfall} nanoMCM`);
   }
 
-  // Validate destination address (tag only, 20 bytes)
+  // Validate destination account tag (20 bytes)
   let dstTagBytes;
   try {
-    dstTagBytes = validateTag(dstAddress, 'dstAddress');
+    dstTagBytes = validateAccountTag(destinationTag, 'dstAccountTag');
   } catch (error) {
-    throw new Error(`Invalid destination address: ${error.message}\n` +
-      `HINT: dstAddress should be the 20-byte tag (40 hex chars), not the full 40-byte address. ` +
+    throw new Error(`Invalid destination account tag: ${error.message}\n` +
+      `HINT: dstAccountTag should be the 20-byte account tag (40 hex chars), not the full 40-byte ledger address. ` +
       `For Base58 addresses, decode and extract the first 20 bytes.`);
   }
 
@@ -363,37 +365,37 @@ export function createTransaction(params) {
   const srcWotsPk = sourcePk.substring(0, 4288);
   const chgWotsPk = changePk.substring(0, 4288);
 
-  // Get source address (40 bytes: tag + DSA)
-  // srcTag parameter provides the tag portion, addrFromWots provides DSA portion
-  const srcWotsAddr = addrFromWots(Buffer.from(srcWotsPk, 'hex'));
+  // Get source ledger address (40 bytes: Account Tag + DSA Hash)
+  // srcTag parameter provides the Account Tag, addrFromWots provides DSA Hash
+  const srcWotsDsaHash = addrFromWots(Buffer.from(srcWotsPk, 'hex'));
   // srcTagBytes already created during validation above
 
-  // Source address: user-provided tag + WOTS DSA hash
-  const srcAddrBuf = Buffer.alloc(40);
-  srcTagBytes.copy(srcAddrBuf, 0);  // First 20 bytes: tag
-  srcWotsAddr.slice(0, 20).copy(srcAddrBuf, 20);  // Last 20 bytes: DSA hash (first 20 of implicit addr)
+  // Source ledger address: user-provided Account Tag + WOTS DSA hash
+  const srcLedgerAddrBuf = Buffer.alloc(40);
+  srcTagBytes.copy(srcLedgerAddrBuf, 0);  // First 20 bytes: Account Tag
+  srcWotsDsaHash.slice(0, 20).copy(srcLedgerAddrBuf, 20);  // Last 20 bytes: DSA hash
 
-  // Change address: SAME tag as source + NEW WOTS DSA hash
-  const chgWotsAddr = addrFromWots(Buffer.from(chgWotsPk, 'hex'));
-  const chgAddrBuf = Buffer.alloc(40);
-  srcTagBytes.copy(chgAddrBuf, 0);  // First 20 bytes: SAME tag as source (tag moves!)
-  chgWotsAddr.slice(0, 20).copy(chgAddrBuf, 20);  // Last 20 bytes: NEW DSA hash
+  // Change ledger address: SAME Account Tag as source + NEW WOTS DSA hash
+  const chgWotsDsaHash = addrFromWots(Buffer.from(chgWotsPk, 'hex'));
+  const chgLedgerAddrBuf = Buffer.alloc(40);
+  srcTagBytes.copy(chgLedgerAddrBuf, 0);  // First 20 bytes: SAME Account Tag as source (tag moves!)
+  chgWotsDsaHash.slice(0, 20).copy(chgLedgerAddrBuf, 20);  // Last 20 bytes: NEW DSA hash
 
-  const srcAddr = srcAddrBuf.toString('hex');
-  const chgAddr = chgAddrBuf.toString('hex');
+  const srcLedgerAddr = srcLedgerAddrBuf.toString('hex');
+  const chgLedgerAddr = chgLedgerAddrBuf.toString('hex');
 
-  // CRITICAL VALIDATION: Change address MUST be explicit (TAG ≠ DSA)
-  // Per Mochimo protocol (txval.c), change addresses cannot be implicit
-  const chgTag = chgAddrBuf.slice(0, 20).toString('hex');
-  const chgDsa = chgAddrBuf.slice(20, 40).toString('hex');
+  // CRITICAL VALIDATION: Change account MUST be explicit (Account Tag ≠ DSA Hash)
+  // Per Mochimo protocol (txval.c), change accounts cannot be implicit
+  const chgTag = chgLedgerAddrBuf.slice(0, 20).toString('hex');
+  const chgDsa = chgLedgerAddrBuf.slice(20, 40).toString('hex');
   if (chgTag === chgDsa) {
     throw new Error(
-      'Invalid change address: Change address cannot be implicit (TAG == DSA).\n' +
-      'Change addresses MUST be explicit per Mochimo protocol.\n' +
-      `Change TAG: ${chgTag}\n` +
-      `Change DSA: ${chgDsa}\n` +
+      'Invalid change account: Change account cannot be implicit (Account Tag == DSA Hash).\n' +
+      'Change accounts MUST be explicit per Mochimo protocol.\n' +
+      `Change Account Tag: ${chgTag}\n` +
+      `Change DSA Hash: ${chgDsa}\n` +
       'This usually means you are reusing a previously used WOTS+ public key.\n' +
-      'Generate a fresh WOTS+ key pair for the change address.'
+      'Generate a fresh WOTS+ key pair for the change account.'
     );
   }
 
@@ -402,8 +404,8 @@ export function createTransaction(params) {
 
   // Create transaction header
   const hdr = createTXHDR(
-    Buffer.from(srcAddr, 'hex'),
-    Buffer.from(chgAddr, 'hex'),
+    Buffer.from(srcLedgerAddr, 'hex'),
+    Buffer.from(chgLedgerAddr, 'hex'),
     amount,
     changeAmount,
     fee,
@@ -411,7 +413,7 @@ export function createTransaction(params) {
   );
 
   // Create destination
-  const destinations = [createMDST(dstAddress, memo, amount)];
+  const destinations = [createMDST(destinationTag, memo, amount)];
 
   // Set destination count in header
   hdr.options[2] = destinations.length - 1;
@@ -425,12 +427,12 @@ export function createTransaction(params) {
   const secretBytes = Buffer.from(secret, 'hex');
   const keypair = keygen(secretBytes);
 
-  // Verify that the public key DSA matches the source address DSA (last 20 bytes)
-  const derivedWotsAddr = addrFromWots(keypair.publicKey);
-  const derivedDsa = derivedWotsAddr.slice(0, 20).toString('hex');
-  const srcDsa = srcAddrBuf.slice(20, 40).toString('hex');
+  // Verify that the public key DSA matches the source ledger address DSA (last 20 bytes)
+  const derivedWotsDsaHash = addrFromWots(keypair.publicKey);
+  const derivedDsa = derivedWotsDsaHash.slice(0, 20).toString('hex');
+  const srcDsa = srcLedgerAddrBuf.slice(20, 40).toString('hex');
   if (derivedDsa !== srcDsa) {
-    throw new Error('Public key derived from secret does not match source address DSA');
+    throw new Error('DSA PK hash derived from secret does not match source ledger address DSA hash');
   }
 
   const signature = sign(message, keypair);
@@ -467,9 +469,9 @@ export function createTransaction(params) {
     transactionHex: txBytes.toString('hex'),
     transactionBase64: txBytes.toString('base64'),
     messageHash: message.toString('hex'),
-    sourceAddress: srcAddr,
-    changeAddress: chgAddr,
-    destinationAddress: dstAddress,
+    sourceLedgerAddress: srcLedgerAddr,
+    changeLedgerAddress: chgLedgerAddr,
+    destinationAccountTag: destinationTag,
     sendAmount: amount,
     changeAmount,
     fee,

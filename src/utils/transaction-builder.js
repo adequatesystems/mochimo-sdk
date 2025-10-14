@@ -7,32 +7,32 @@
  */
 
 import { createTransaction } from '../core/transaction.js';
-import { extractTag, getAddressInfo, validateAddress } from './address-utils.js';
+import { extractAccountTag, extractTag, getAccountInfo, getAddressInfo, validateLedgerAddress, validateAddress } from './address-utils.js';
 
 /**
- * Build a transaction with automatic tag extraction from source address.
+ * Build a transaction with automatic account tag extraction from source ledger address.
  *
  * This is a convenience wrapper around createTransaction() that automatically
- * extracts the source tag from the full source address, preventing the common
- * error of providing mismatched tags.
+ * extracts the source account tag from the full source ledger address, preventing
+ * the common error of providing mismatched tags.
  *
- * **Understanding Mochimo Addresses:**
- * - Full ledger addresses are 40 bytes: TAG (20 bytes) + DSA (20 bytes)
- * - TAG = Account identifier that persists across transactions
- * - DSA = WOTS+ public key hash (changes with each transaction)
- * - When spending, the source TAG automatically moves to the change address
+ * **Understanding Mochimo Accounts:**
+ * - Full ledger addresses are 40 bytes: Account Tag (20 bytes) + DSA PK Hash (20 bytes)
+ * - Account Tag = Persistent account identifier across transactions
+ * - DSA PK Hash = WOTS+ public key hash (changes with each transaction)
+ * - When spending, the source Account Tag automatically moves to the change account
  *
- * **Implicit vs Explicit Addresses:**
- * - Implicit (never spent): TAG == DSA (both portions are identical)
- * - Explicit (previously spent): TAG ≠ DSA (tag preserved from last TX)
+ * **Implicit vs Explicit Accounts:**
+ * - Implicit (never spent): Account Tag == DSA Hash (both portions are identical)
+ * - Explicit (previously spent): Account Tag ≠ DSA Hash (tag preserved from last TX)
  *
  * @param {Object} params - Transaction parameters
- * @param {string} params.sourceAddress - Full 40-byte source address (80 hex chars)
- * @param {string} params.sourcePublicKey - Source WOTS+ public key (4416 hex chars)
+ * @param {string} params.sourceLedgerAddress - Full 40-byte source ledger address (80 hex chars: Account Tag + DSA Hash)
+ * @param {string} params.sourcePublicKey - Source WOTS+ DSA public key (4416 hex chars)
  * @param {string} params.sourceSecret - Source secret key (64 hex chars)
  * @param {string|bigint} params.balance - Current balance in nanoMCM
- * @param {string} params.changePublicKey - New WOTS+ public key for change (4416 hex chars)
- * @param {string} params.destinationAddress - Destination TAG (20 bytes, 40 hex) or full address (40 bytes, 80 hex)
+ * @param {string} params.changePublicKey - New WOTS+ DSA public key for change (4416 hex chars)
+ * @param {string} params.destinationAccountTag - Destination account tag (20 bytes, 40 hex) or full ledger address (40 bytes, 80 hex)
  * @param {string|bigint} params.amount - Amount to send in nanoMCM
  * @param {string|bigint} [params.fee=500] - Transaction fee in nanoMCM
  * @param {string} [params.memo=''] - Optional memo (max 16 chars, see rules)
@@ -40,17 +40,17 @@ import { extractTag, getAddressInfo, validateAddress } from './address-utils.js'
  *
  * @returns {Buffer} - Serialized signed transaction ready for broadcast
  *
- * @throws {Error} If source address is invalid or parameters are incorrect
+ * @throws {Error} If source ledger address is invalid or parameters are incorrect
  *
  * @example
- * // Build a transaction (automatic tag extraction)
+ * // Build a transaction (automatic account tag extraction)
  * const tx = buildTransaction({
- *   sourceAddress: 'ab8599ef...dddc2760ab8599ef...dddc2760', // 80 hex chars
+ *   sourceLedgerAddress: 'ab8599ef...dddc2760ab8599ef...dddc2760', // 80 hex chars
  *   sourcePublicKey: '0123...', // 4416 hex chars
  *   sourceSecret: 'a1b2...', // 64 hex chars
  *   balance: '100000',
  *   changePublicKey: '4567...', // 4416 hex chars (new keypair)
- *   destinationAddress: 'cd1234...', // 40 or 80 hex chars
+ *   destinationAccountTag: 'cd1234...', // 40 or 80 hex chars
  *   amount: '5000',
  *   fee: '500',
  *   memo: 'TEST-123'
@@ -58,67 +58,67 @@ import { extractTag, getAddressInfo, validateAddress } from './address-utils.js'
  */
 export function buildTransaction(params) {
   const {
-    sourceAddress,
+    sourceLedgerAddress,
     sourcePublicKey,
     sourceSecret,
     balance,
     changePublicKey,
-    destinationAddress,
+    destinationAccountTag,
     amount,
     fee = 500,
     memo = '',
     blocksToLive = 1000
   } = params;
 
-  // Validate and extract source tag
-  if (!sourceAddress) {
-    throw new Error('sourceAddress is required');
+  // Validate and extract source account tag
+  if (!sourceLedgerAddress) {
+    throw new Error('sourceLedgerAddress is required');
   }
 
-  let sourceTag;
+  let sourceAccountTag;
   try {
-    // Validate full address
-    validateAddress(sourceAddress, 'sourceAddress');
-    // Extract tag (first 20 bytes)
-    sourceTag = extractTag(sourceAddress);
+    // Validate full ledger address
+    validateLedgerAddress(sourceLedgerAddress, 'sourceLedgerAddress');
+    // Extract account tag (first 20 bytes) and convert to hex string
+    sourceAccountTag = extractAccountTag(sourceLedgerAddress).toString('hex');
   } catch (error) {
-    throw new Error(`Invalid sourceAddress: ${error.message}\n` +
-      `Expected: 40-byte address (80 hex characters) in format TAG+DSA`);
+    throw new Error(`Invalid sourceLedgerAddress: ${error.message}\n` +
+      `Expected: 40-byte ledger address (80 hex characters) in format Account Tag + DSA Hash`);
   }
 
-  // Handle destination address (could be 20-byte tag or 40-byte full address)
+  // Handle destination (could be 20-byte account tag or 40-byte full ledger address)
   let destinationTag;
-  if (destinationAddress.length === 40) {
-    // It's a 20-byte tag
-    destinationTag = destinationAddress;
-  } else if (destinationAddress.length === 80) {
-    // It's a 40-byte full address, extract tag
-    destinationTag = extractTag(destinationAddress);
+  if (destinationAccountTag.length === 40) {
+    // It's a 20-byte account tag
+    destinationTag = destinationAccountTag;
+  } else if (destinationAccountTag.length === 80) {
+    // It's a 40-byte full ledger address, extract account tag
+    destinationTag = extractAccountTag(destinationAccountTag).toString('hex');
   } else {
-    throw new Error(`destinationAddress must be either 40 hex chars (tag) or 80 hex chars (full address), ` +
-      `got ${destinationAddress.length} chars`);
+    throw new Error(`destinationAccountTag must be either 40 hex chars (account tag) or 80 hex chars (full ledger address), ` +
+      `got ${destinationAccountTag.length} chars`);
   }
 
-  // Get source address info for helpful debugging
-  const srcInfo = getAddressInfo(sourceAddress);
+  // Get source account info for helpful debugging
+  const srcInfo = getAccountInfo(srcLedgerAddr);
 
-  // Log helpful info if this is an implicit address
+  // Log helpful info if this is an implicit account
   if (srcInfo.implicit) {
-    console.log('ℹ️  Source is an implicit address (first-time use, TAG == DSA)');
-    console.log(`   Tag: ${srcInfo.tag}`);
+    console.log('ℹ️  Source is an implicit account (first-time use, Account Tag == DSA Hash)');
+    console.log(`   Account Tag: ${srcInfo.accountTag}`);
   } else {
-    console.log('ℹ️  Source is an explicit address (previously spent, TAG ≠ DSA)');
-    console.log(`   Tag: ${srcInfo.tag} (will move to change address)`);
-    console.log(`   DSA: ${srcInfo.dsa} (current WOTS+ key)`);
+    console.log('ℹ️  Source is an explicit account (previously spent, Account Tag ≠ DSA Hash)');
+    console.log(`   Account Tag: ${srcInfo.accountTag} (will move to change account)`);
+    console.log(`   DSA Hash: ${srcInfo.dsaHash} (current WOTS+ key)`);
   }
 
-  // Create transaction with extracted tag
+  // Create transaction with extracted account tag
   const txObj = createTransaction({
-    srcTag: sourceTag,
+    srcTag: sourceAccountTag,
     sourcePk: sourcePublicKey,
     changePk: changePublicKey,
     balance,
-    dstAddress: destinationTag,
+    dstAccountTag: destinationTag,
     amount,
     fee,
     secret: sourceSecret,
@@ -138,14 +138,14 @@ export function buildTransaction(params) {
  * from stored wallet data.
  *
  * @param {Object} wallet - Wallet configuration object
- * @param {Object} wallet.source - Source address info
- * @param {string} wallet.source.address - Full 40-byte address
- * @param {string} wallet.source.publicKey - WOTS+ public key
+ * @param {Object} wallet.source - Source account info
+ * @param {string} wallet.source.address - Full 40-byte ledger address
+ * @param {string} wallet.source.publicKey - WOTS+ DSA public key
  * @param {string} wallet.source.seed - Secret key (64 hex chars)
  * @param {string|bigint} wallet.source.balance - Current balance
- * @param {Object} wallet.change - Change address info
- * @param {string} wallet.change.publicKey - New WOTS+ public key for change
- * @param {string} destination - Destination address (tag or full)
+ * @param {Object} wallet.change - Change account info
+ * @param {string} wallet.change.publicKey - New WOTS+ DSA public key for change
+ * @param {string} destination - Destination account tag or full ledger address
  * @param {string|bigint} amount - Amount to send
  * @param {Object} [options] - Additional options
  * @param {string|bigint} [options.fee=500] - Transaction fee
@@ -158,7 +158,7 @@ export function buildTransaction(params) {
  * const wallet = JSON.parse(fs.readFileSync('wallet-config.json'));
  * const txParams = prepareTransactionFromWallet(
  *   wallet,
- *   'cd1234...', // destination
+ *   'cd1234...', // destination account tag
  *   '5000'       // amount
  * );
  * const tx = buildTransaction(txParams);
@@ -180,12 +180,12 @@ export function prepareTransactionFromWallet(wallet, destination, amount, option
   if (!change.publicKey) throw new Error('wallet.change.publicKey is required');
 
   return {
-    sourceAddress: source.address,
+    sourceLedgerAddress: source.address,
     sourcePublicKey: source.publicKey,
     sourceSecret: source.seed,  // Using 'seed' field from wallet config
     balance: source.balance,
     changePublicKey: change.publicKey,
-    destinationAddress: destination,
+    destinationAccountTag: destination,
     amount,
     fee: options.fee || 500,
     memo: options.memo || '',
@@ -217,7 +217,7 @@ export function validateTransactionParams(params) {
   if (!params.srcTag) errors.push('srcTag is required');
   if (!params.sourcePk) errors.push('sourcePk is required');
   if (!params.changePk) errors.push('changePk is required');
-  if (!params.dstAddress) errors.push('dstAddress is required');
+  if (!params.dstAccountTag) errors.push('dstAccountTag is required');
   if (!params.amount) errors.push('amount is required');
   if (!params.secret) errors.push('secret is required');
   if (params.balance === undefined) errors.push('balance is required');
@@ -232,8 +232,9 @@ export function validateTransactionParams(params) {
   if (params.changePk && params.changePk.length !== 4416) {
     errors.push(`changePk must be 4416 hex chars, got ${params.changePk.length}`);
   }
-  if (params.dstAddress && params.dstAddress.length !== 40) {
-    errors.push(`dstAddress must be 40 hex chars (20 bytes), got ${params.dstAddress.length}`);
+
+  if (params.dstAccountTag && params.dstAccountTag.length !== 40) {
+    errors.push(`dstAccountTag must be 40 hex chars (20 bytes), got ${params.dstAccountTag.length}`);
   }
   if (params.secret && params.secret.length !== 64) {
     errors.push(`secret must be 64 hex chars (32 bytes), got ${params.secret.length}`);

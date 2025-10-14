@@ -4,7 +4,7 @@
 
 - [Installation](#installation)
 - [Core Modules](#core-modules)
-  - [Address Generation](#address-generation)
+  - [Account Keypair Generation](#account-keypair-generation)
   - [Transaction Creation](#transaction-creation)
   - [Network Operations](#network-operations)
 - [Advanced Usage](#advanced-usage)
@@ -14,41 +14,45 @@
 ## Installation
 
 ```bash
-npm install mochimo-sdk
+npm install mochimo
 ```
 
 ## Core Modules
 
-### Address Generation
+### Account Keypair Generation
 
-Generate WOTS+ keypairs and Mochimo addresses.
+Generate WOTS+ keypairs for Mochimo accounts.
 
 #### Import
 
 ```javascript
-import { generateAddress, generateAddresses } from 'mochimo-sdk';
+import { generateAccountKeypair, generateAccountKeypairs } from 'mochimo';
 // Or
-import { generateAddress, generateAddresses } from 'mochimo-sdk/address';
+import { generateAccountKeypair, generateAccountKeypairs } from 'mochimo/address';
+
+// Legacy aliases (deprecated but still available):
+// generateAddress, generateAddresses
 ```
 
-#### `generateAddress(options?)`
+#### `generateAccountKeypair(options?)`
 
-Generate a single address with WOTS+ keypair.
+Generate a single WOTS+ keypair for a Mochimo account.
 
 **Parameters:**
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `options.seed` | Buffer | No | 32-byte seed for deterministic generation |
-| `options.index` | number | No | Address index (default: 0) |
+| `options.index` | number | No | Keypair index (default: 0) |
 
 **Returns:**
 
 ```typescript
 {
-  address: string,           // 40-char hex (20-byte hash)
-  accountNumber: string,     // 20-char hex (10-byte account)
-  publicKey: string,         // 4416-char hex (2208 bytes)
+  dsaHash: Buffer,           // 20-byte DSA public key hash (can be Account Tag on first use)
+  accountTag: Buffer,        // 20-byte persistent account identifier
+  accountNumber: string,     // 20-char hex (10-byte account number)
+  publicKey: string,         // 4416-char hex (2208 bytes) - WOTS+ public key
   secretKey: string,         // 64-char hex (32 bytes)
   publicKeyBuffer: Buffer,   // Public key as Buffer
   secretKeyBuffer: Buffer    // Secret key as Buffer
@@ -58,36 +62,42 @@ Generate a single address with WOTS+ keypair.
 **Examples:**
 
 ```javascript
-// Random address
-const addr = generateAddress();
+// Random keypair
+const keypair = generateAccountKeypair();
 
-// Deterministic address
+// Deterministic keypair
 const seed = Buffer.from('0'.repeat(64), 'hex');
-const addr = generateAddress({ seed, index: 0 });
+const keypair = generateAccountKeypair({ seed, index: 0 });
+
+// Legacy function name (still works):
+// const addr = generateAddress({ seed, index: 0 });
 ```
 
-#### `generateAddresses(count, options?)`
+#### `generateAccountKeypairs(count, options?)`
 
-Generate multiple addresses.
+Generate multiple account keypairs.
 
 **Parameters:**
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `count` | number | Yes | Number of addresses to generate |
+| `count` | number | Yes | Number of keypairs to generate |
 | `options.masterSeed` | Buffer | No | 32-byte master seed for deterministic generation |
 
-**Returns:** `Array<AddressObject>`
+**Returns:** `Array<KeypairObject>`
 
 **Example:**
 
 ```javascript
-// Random addresses
-const addrs = generateAddresses(5);
+// Random keypairs
+const keypairs = generateAccountKeypairs(5);
 
-// Deterministic addresses (each uses SHA256(previous_seed))
+// Deterministic keypairs (each uses SHA256(previous_seed))
 const masterSeed = Buffer.from('0'.repeat(64), 'hex');
-const addrs = generateAddresses(3, { masterSeed });
+const keypairs = generateAccountKeypairs(3, { masterSeed });
+
+// Legacy function name (still works):
+// const addrs = generateAddresses(3, { masterSeed });
 ```
 
 ---
@@ -99,9 +109,9 @@ Create and sign MCM 3.0 transactions.
 #### Import
 
 ```javascript
-import { createTransaction, signTransaction, serializeTransaction } from 'mochimo-sdk';
+import { createTransaction, signTransaction, serializeTransaction } from 'mochimo';
 // Or
-import { createTransaction } from 'mochimo-sdk/transaction';
+import { createTransaction } from 'mochimo/transaction';
 ```
 
 #### `createTransaction(params)`
@@ -112,16 +122,17 @@ Create and sign a transaction.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `srcTag` | string | Yes | Source address tag (40 hex chars = 20 bytes) |
-| `sourcePk` | string | Yes | Source public key (4416 hex chars) |
-| `changePk` | string | Yes | Change public key (4416 hex chars) |
+| `srcTag` | string\|Buffer | Yes | Source account tag (40 hex chars = 20 bytes) - persistent account identifier |
+| `sourcePk` | string | Yes | Source WOTS+ public key (4416 hex chars = 2208 bytes) |
+| `changePk` | string | Yes | Change WOTS+ public key (4416 hex chars = 2208 bytes) - NEW key for next tx |
 | `balance` | number\|bigint | Yes | Source balance in nanoMCM |
-| `dstAddress` | string | Yes | Destination address (20 hex chars = 10 bytes) |
+| `dstAccountTag` | string\|Buffer | Yes | Destination account tag (40 hex chars = 20 bytes) |
 | `amount` | number\|bigint | Yes | Amount to send in nanoMCM |
-| `secret` | string | Yes | Secret key for signing (64 hex chars) |
+| `secret` | string\|Buffer | Yes | Secret key for signing (64 hex chars = 32 bytes) |
 | `memo` | string | No | Transaction memo (max 16 chars, see rules below) |
 | `fee` | number | No | Transaction fee in nanoMCM (default: 500) |
 | `blkToLive` | number | No | Blocks to live (default: 0) |
+| `dstAddress` | string | No | @deprecated Use `dstAccountTag` instead |
 
 **Memo Rules:**
 
@@ -149,38 +160,42 @@ Create and sign a transaction.
 
 ```typescript
 {
-  transaction: Buffer,           // Transaction as Buffer
-  transactionHex: string,        // Transaction as hex string
-  transactionBase64: string,     // Transaction as base64 string
-  messageHash: string,           // Message hash that was signed
-  sourceAddress: string,         // Full source address (80 hex chars)
-  changeAddress: string,         // Full change address (80 hex chars)
-  destinationAddress: string,    // Destination address
-  sendAmount: number|bigint,     // Amount sent
-  changeAmount: number|bigint,   // Change amount
-  fee: number,                   // Transaction fee
-  size: number                   // Transaction size in bytes (2408)
+  transaction: Buffer,                 // Transaction as Buffer
+  transactionHex: string,              // Transaction as hex string
+  transactionBase64: string,           // Transaction as base64 string
+  messageHash: string,                 // Message hash that was signed
+  sourceLedgerAddress: string,         // Full source ledger address (80 hex chars)
+  changeLedgerAddress: string,         // Full change ledger address (80 hex chars)
+  destinationAccountTag: string,       // Destination account tag (40 hex chars)
+  sendAmount: number|bigint,           // Amount sent
+  changeAmount: number|bigint,         // Change amount
+  fee: number,                         // Transaction fee
+  size: number,                        // Transaction size in bytes (2408)
+  // Legacy properties (deprecated):
+  sourceAddress: string,               // @deprecated Use sourceLedgerAddress
+  changeAddress: string,               // @deprecated Use changeLedgerAddress
+  destinationAddress: string           // @deprecated Use destinationAccountTag
 }
 ```
 
 **Example:**
 
 ```javascript
-import { generateAddress, createTransaction } from 'mochimo-sdk';
+import { generateAccountKeypair, createTransaction } from 'mochimo';
 
-// Generate addresses
-const sourceAddr = generateAddress();
-const changeAddr = generateAddress();
+// Generate keypairs
+const sourceKeypair = generateAccountKeypair();
+const changeKeypair = generateAccountKeypair();
 
 // Create transaction
 const tx = createTransaction({
-  srcTag: 'a'.repeat(40),
-  sourcePk: sourceAddr.publicKey,
-  changePk: changeAddr.publicKey,
+  srcTag: sourceKeypair.accountTag,      // 20-byte persistent account identifier
+  sourcePk: sourceKeypair.publicKey,     // WOTS+ public key
+  changePk: changeKeypair.publicKey,     // New WOTS+ public key for change
   balance: 10000,
-  dstAddress: 'b'.repeat(20),
+  dstAccountTag: 'b'.repeat(40),         // Destination account tag (20 bytes)
   amount: 5000,
-  secret: sourceAddr.secretKey,
+  secret: sourceKeypair.secretKey,
   memo: 'ABC-123',
   fee: 500
 });
@@ -211,9 +226,9 @@ Broadcast transactions and query network status.
 #### Import
 
 ```javascript
-import { broadcastTransaction, getNetworkStatus, getAccountBalance } from 'mochimo-sdk';
+import { broadcastTransaction, getNetworkStatus, getAccountBalance } from 'mochimo';
 // Or
-import { broadcastTransaction } from 'mochimo-sdk/network';
+import { broadcastTransaction } from 'mochimo/network';
 ```
 
 #### `broadcastTransaction(signedTransaction, apiUrl, options?)`
@@ -308,8 +323,8 @@ console.log('Balance:', balance.balance, 'nanoMCM');
 Access WOTS+ primitives directly.
 
 ```javascript
-import { keygen, sign, wotsPkFromSig } from 'mochimo-sdk';
-import { mochimoHash, addrFromWots } from 'mochimo-sdk/crypto';
+import { keygen, sign, wotsPkFromSig } from 'mochimo';
+import { mochimoHash, addrFromWots } from 'mochimo/crypto';
 ```
 
 #### `keygen(seed)`
@@ -520,4 +535,5 @@ Test coverage includes:
 
 ## License
 
-MIT License - see LICENSE file for details
+MOCHIMO CRYPTOCURRENCY ENGINE - see LICENSE.md file for details
+

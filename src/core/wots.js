@@ -171,7 +171,7 @@ function baseW(input, outLen) {
       bits += 8;
     }
     bits -= WOTSLOGW;
-    output[out] = (total >> bits) & (WOTSW - 1);
+    output[out] = (total >>> bits) & (WOTSW - 1);
     out++;
   }
 

@@ -5,13 +5,18 @@
  *
  * Demonstrates how to broadcast a signed transaction and query account balances.
  *
+ * TERMINOLOGY:
+ * - Account Keypair: WOTS+ public/private key pair
+ * - Ledger Address: 40-byte entry (Account Tag + DSA Hash)
+ * - Account Tag: 20-byte persistent identifier
+ *
  * IMPORTANT: This example requires:
  * 1. A valid API endpoint (e.g., https://api.mochimo.org)
- * 2. A funded source address with sufficient balance
+ * 2. A funded source account with sufficient balance
  * 3. Network connectivity
  */
 
-import { generateAddress, createTransaction, broadcastTransaction, getAccountBalance } from '../../src/index.js';
+import { generateAccountKeypair, createTransaction, broadcastTransaction, getAccountBalance } from '../../src/index.js';
 
 // Configuration
 const API_URL = process.env.MOCHIMO_API_URL || 'https://api.mochimo.org';
@@ -25,21 +30,24 @@ if (!USE_LIVE_NETWORK) {
 
 async function main() {
   try {
-    // Step 1: Create addresses
-    console.log('1. Generate addresses...');
-    const sourceAddress = generateAddress({ seed: Buffer.from('0'.repeat(64), 'hex'), index: 0 });
-    const changeAddress = generateAddress({ seed: Buffer.from('1'.repeat(64), 'hex'), index: 1 });
+    // Step 1: Create account keypairs
+    console.log('1. Generate account keypairs...');
+    const sourceKeypair = generateAccountKeypair({ seed: Buffer.from('0'.repeat(64), 'hex'), index: 0 });
+    const changeKeypair = generateAccountKeypair({ seed: Buffer.from('1'.repeat(64), 'hex'), index: 1 });
 
-    console.log('   Source Address:', sourceAddress.address);
-    console.log('   Change Address:', changeAddress.address);
+    console.log('   Source DSA Hash:', sourceKeypair.dsaHash.toString('hex'));
+    console.log('   Source Account Tag:', sourceKeypair.accountTag.toString('hex'));
+    console.log('   Change DSA Hash:', changeKeypair.dsaHash.toString('hex'));
+    console.log('   Change Account Tag:', changeKeypair.accountTag.toString('hex'));
     console.log();
 
     if (USE_LIVE_NETWORK) {
       // Step 2: Check balance (live network only)
-      console.log('2. Query source address balance...');
+      console.log('2. Query source account balance...');
       try {
-        const balance = await getAccountBalance(sourceAddress.address, API_URL);
-        console.log('   Address:', balance.address);
+        const sourceLedgerAddress = sourceKeypair.dsaHash.toString('hex');
+        const balance = await getAccountBalance(sourceLedgerAddress, API_URL);
+        console.log('   Ledger Address:', balance.address);
         console.log('   Balance:', balance.balance, 'nanoMCM');
         console.log('   Block:', balance.block?.index || 'unknown');
         console.log();

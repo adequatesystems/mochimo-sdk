@@ -5,6 +5,46 @@ All notable changes to the Mochimo Node.js SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-10-13
+
+### Changed - Nomenclature Improvements
+
+#### Function Names
+- **RENAMED**: `generateAddress()` → `generateAccountKeypair()` (legacy alias maintained)
+- **RENAMED**: `generateAddresses()` → `generateAccountKeypairs()` (legacy alias maintained)
+
+#### Parameter Names (Transaction Creation)
+- **RENAMED**: `dstAddress` → `dstAccountTag` (legacy parameter maintained)
+- **CLARIFIED**: `srcTag` now explicitly documented as "Account Tag" (20-byte persistent identifier)
+- **CLARIFIED**: `sourcePk` and `changePk` now explicitly documented as "WOTS+ public keys"
+
+#### Return Object Properties
+- **ADDED**: `dsaHash` (Buffer) - DSA public key hash (can become Account Tag on first use)
+- **ADDED**: `accountTag` (Buffer) - 20-byte persistent account identifier
+- **ADDED**: `sourceLedgerAddress` - Full 40-byte source ledger entry
+- **ADDED**: `changeLedgerAddress` - Full 40-byte change ledger entry
+- **ADDED**: `destinationAccountTag` - 20-byte destination identifier
+- **MAINTAINED**: Legacy aliases (`address`, `tag`, `sourceAddress`, `changeAddress`, `destinationAddress`)
+
+### Documentation Updates
+- Updated README.md with comprehensive "Understanding Mochimo Terminology" section
+- Updated SDK_API_DOCUMENTATION.md with new function names and terminology
+- Updated all 8 example scripts to use new nomenclature
+- Updated all unit tests to use new nomenclature
+- Added detailed explanations of Account Tag persistence and WOTS+ key rotation
+
+### Verified
+- All 46 unit tests passing with new nomenclature
+- Successful mainnet transactions broadcast and confirmed
+- Account Tag persistence verified across multiple transaction chains
+- Legacy function names and parameters confirmed working (backward compatible)
+
+### Backward Compatibility
+- ✅ All legacy function names maintained as aliases
+- ✅ All legacy parameter names still accepted
+- ✅ All legacy return properties still present
+- ✅ No breaking changes for existing code
+
 ## [1.0.0] - 2025-10-12
 
 ### Added

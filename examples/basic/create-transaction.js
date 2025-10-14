@@ -4,38 +4,46 @@
  * Example: Create and Sign a Mochimo Transaction
  *
  * Demonstrates how to create and sign offline transactions using the SDK.
+ *
+ * TERMINOLOGY:
+ * - srcTag: 20-byte persistent account identifier (Account Tag)
+ * - dstAccountTag: 20-byte destination account identifier
+ * - sourceLedgerAddress: 40-byte source entry (Account Tag + DSA Hash)
+ * - changeLedgerAddress: 40-byte change entry (Account Tag + new DSA Hash)
  */
 
-import { generateAddress, createTransaction } from '../../src/index.js';
+import { generateAccountKeypair, createTransaction } from '../../src/index.js';
 
 console.log('=== Mochimo SDK - Transaction Creation Example ===\n');
 
-// Step 1: Create (or pass in) source and change addresses
-console.log('1. Generate source and change addresses...');
-const sourceAddress = generateAddress({ seed: Buffer.from('0'.repeat(64), 'hex'), index: 0 });
-const changeAddress = generateAddress({ seed: Buffer.from('1'.repeat(64), 'hex'), index: 1 });
+// Step 1: Create (or pass in) source and change keypairs
+console.log('1. Generate source and change keypairs...');
+const sourceKeypair = generateAccountKeypair({ seed: Buffer.from('0'.repeat(64), 'hex'), index: 0 });
+const changeKeypair = generateAccountKeypair({ seed: Buffer.from('1'.repeat(64), 'hex'), index: 1 });
 
-console.log('   Source Address:', sourceAddress.address);
-console.log('   Change Address:', changeAddress.address);
+console.log('   Source DSA Hash:', sourceKeypair.dsaHash.toString('hex'));
+console.log('   Source Account Tag:', sourceKeypair.accountTag.toString('hex'));
+console.log('   Change DSA Hash:', changeKeypair.dsaHash.toString('hex'));
+console.log('   Change Account Tag:', changeKeypair.accountTag.toString('hex'));
 console.log();
 
 // Step 2: Define transaction parameters
 console.log('2. Set up transaction parameters...');
 const txParams = {
-  // Source account details
-  srcTag: 'a'.repeat(40),                    // 20 bytes (40 hex chars) - source tag
-  sourcePk: sourceAddress.publicKey,         // 2208 bytes (4416 hex chars) - WOTS+ public key
-  changePk: changeAddress.publicKey,         // 2208 bytes (4416 hex chars) - change public key
-  secret: sourceAddress.secretKey,           // 32 bytes (64 hex chars) - secret key for signing
+  // Source account details (for first transaction, srcTag = first 20 bytes of dsaHash)
+  srcTag: sourceKeypair.accountTag,          // 20 bytes - persistent account identifier
+  sourcePk: sourceKeypair.publicKey,         // 2208 bytes (4416 hex chars) - WOTS+ public key
+  changePk: changeKeypair.publicKey,         // 2208 bytes (4416 hex chars) - change public key
+  secret: sourceKeypair.secretKey,           // 32 bytes (64 hex chars) - secret key for signing
 
   // Transaction amounts
   balance: 10000,                            // Current balance in nanoMCM
   amount: 5000,                              // Amount to send in nanoMCM
   fee: 500,                                  // Transaction fee in nanoMCM
 
-  // Destination
-  dstAddress: 'b'.repeat(20),                // 10 bytes (20 hex chars) - destination tag
-  memo: 'ABC-123-DEF'                        // Optional memo (max 16 chars)
+  // Destination (20-byte account tag)
+  dstAccountTag: 'b'.repeat(40),             // 20 bytes (40 hex chars) - destination account tag
+  memo: 'ABC-123'                            // Optional memo (max 16 chars)
 };
 
 console.log('   Balance:', txParams.balance, 'nanoMCM');
@@ -53,9 +61,9 @@ try {
   console.log('   ✓ Transaction created successfully!');
   console.log('   Transaction Size:', transaction.size, 'bytes');
   console.log('   Message Hash:', transaction.messageHash);
-  console.log('   Source Address:', transaction.sourceAddress);
-  console.log('   Change Address:', transaction.changeAddress);
-  console.log('   Destination:', transaction.destinationAddress);
+  console.log('   Source Ledger Address:', transaction.sourceLedgerAddress);
+  console.log('   Change Ledger Address:', transaction.changeLedgerAddress);
+  console.log('   Destination Account Tag:', transaction.destinationAccountTag);
   console.log();
 
   console.log('4. Transaction hex (first 128 chars):');

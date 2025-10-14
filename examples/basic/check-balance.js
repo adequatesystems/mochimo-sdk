@@ -1,7 +1,10 @@
 /**
  * Check Account Balance Script
  *
- * Queries the balance of the source address using the Mochimo API.
+ * Queries the balance of a Mochimo account using the ledger address.
+ *
+ * TERMINOLOGY:
+ * - Ledger Address: 40-byte entry (Account Tag + DSA Hash) = 80 hex chars
  */
 
 import fs from 'fs';
@@ -10,10 +13,10 @@ const API_URL = 'https://api.mochimo.org';
 
 console.log('=== Mochimo SDK - Balance Checker ===\n');
 
-async function checkBalance(addressHex) {
-  // Ensure address has 0x prefix for balance API
-  const formattedAddress = addressHex.startsWith('0x') ? addressHex : `0x${addressHex}`;
-  console.log(`Checking balance for address: ${formattedAddress}\n`);
+async function checkBalance(ledgerAddressHex) {
+  // Ensure ledger address has 0x prefix for balance API
+  const formattedAddress = ledgerAddressHex.startsWith('0x') ? ledgerAddressHex : `0x${ledgerAddressHex}`;
+  console.log(`Checking balance for ledger address: ${formattedAddress}\n`);
 
   try {
     const response = await fetch(`${API_URL}/account/balance`, {

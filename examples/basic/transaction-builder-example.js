@@ -1,16 +1,21 @@
 /**
  * Example: Using Transaction Builder Helpers
  *
- * This example demonstrates the new transaction builder utilities that
+ * This example demonstrates the transaction builder utilities that
  * simplify transaction creation and prevent common errors.
+ *
+ * TERMINOLOGY:
+ * - sourceLedgerAddress: 40-byte source entry (Account Tag + DSA Hash)
+ * - destinationAccountTag: 20-byte destination identifier
+ * - Account Tag: Persistent 20-byte account identifier
  */
 
 import fs from 'fs';
 import {
   buildTransaction,
   prepareTransactionFromWallet,
-  getAddressInfo,
-  extractTag
+  getAccountInfo,
+  extractAccountTag
 } from '../../src/index.js';
 import { broadcastTransaction } from '../../src/network/broadcast.js';
 
@@ -20,28 +25,28 @@ async function main() {
   // Load wallet configuration
   const wallet = JSON.parse(fs.readFileSync('wallet-config.json', 'utf8'));
 
-  // 1. Inspect source address
-  console.log('1. Source Address Information:');
-  const sourceInfo = getAddressInfo(wallet.source.address);
-  console.log(`   Full Address: ${sourceInfo.full}`);
-  console.log(`   Tag (Account): ${sourceInfo.tag}`);
-  console.log(`   DSA (WOTS Key): ${sourceInfo.dsa}`);
-  console.log(`   Type: ${sourceInfo.type}`);
-  console.log(`   Implicit: ${sourceInfo.implicit ? 'Yes (first-time address)' : 'No (previously spent)'}`);
+  // 1. Inspect source account
+  console.log('1. Source Account Information:');
+  const sourceInfo = getAccountInfo(wallet.source.address);
+  console.log(`   Full Ledger Address: ${sourceInfo.fullLedgerAddress}`);
+  console.log(`   Account Tag (20 bytes): ${sourceInfo.accountTag}`);
+  console.log(`   DSA Hash (20 bytes): ${sourceInfo.dsaHash}`);
+  console.log(`   Account Type: ${sourceInfo.accountType}`);
+  console.log(`   Implicit: ${sourceInfo.implicit ? 'Yes (first-time account)' : 'No (previously spent)'}`);
   console.log();
 
   // 2. Using buildTransaction (simplest method)
   console.log('2. Building transaction with buildTransaction():');
-  const destinationTag = 'cd1234567890abcdef1234567890abcdef123456'; // 40 hex chars
+  const destinationAccountTag = 'cd1234567890abcdef1234567890abcdef123456'; // 40 hex chars (20 bytes)
 
   try {
     const tx = buildTransaction({
-      sourceAddress: wallet.source.address,        // Full 80-char address (automatic tag extraction!)
+      sourceLedgerAddress: wallet.source.address,  // Full 80-char ledger address (automatic tag extraction!)
       sourcePublicKey: wallet.source.publicKey,
       sourceSecret: wallet.source.seed,            // Secret key from wallet
       balance: wallet.source.balance,
       changePublicKey: wallet.change.publicKey,
-      destinationAddress: destinationTag,          // Can be 40 or 80 hex chars
+      destinationAccountTag: destinationAccountTag, // 40 hex chars (20-byte account tag)
       amount: '5000',
       fee: '500',
       memo: 'EXAMPLE-1'

@@ -1,9 +1,14 @@
 /**
  * Create and Broadcast Transaction Script
  *
- * Creates an offline transaction from the funded source address,
- * sends 5000 nanoMCM to the destination, with change to the change address,
+ * Creates an offline transaction from the funded source account,
+ * sends 5000 nanoMCM to the destination account, with change to the change address,
  * then broadcasts it to the Mochimo network.
+ *
+ * TERMINOLOGY:
+ * - Account Tag: 20-byte persistent account identifier (40 hex chars)
+ * - Ledger Address: 40-byte entry (Account Tag + DSA Hash) = 80 hex chars
+ * - dstAccountTag: Destination's 20-byte account tag (40 hex chars)
  */
 
 import { createTransaction, broadcastTransaction } from '../../src/index.js';
@@ -15,19 +20,19 @@ const API_URL = 'https://api.mochimo.org';
 
 console.log('=== Mochimo SDK - Create and Broadcast Transaction ===\n');
 
-// Decode Base58 destination address to hex
-function decodeBase58Address(base58Addr) {
+// Decode Base58 destination address to account tag (20 bytes)
+function decodeBase58ToAccountTag(base58Addr) {
   try {
     const decoded = bs58.decode(base58Addr);
 
     // Remove the 2-byte checksum from the end
     const addressWithoutChecksum = decoded.slice(0, -2);
 
-    // The address tag is the full 20 bytes
-    const tag = addressWithoutChecksum.slice(0, 20);
+    // The account tag is the full 20 bytes
+    const accountTag = addressWithoutChecksum.slice(0, 20);
 
     // Convert Uint8Array to Buffer then to hex string
-    return Buffer.from(tag).toString('hex'); // Return full 20 bytes (40 hex chars)
+    return Buffer.from(accountTag).toString('hex'); // Return full 20 bytes (40 hex chars)
   } catch (error) {
     throw new Error(`Failed to decode Base58 address: ${error.message}`);
   }
