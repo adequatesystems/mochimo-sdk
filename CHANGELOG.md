@@ -5,6 +5,56 @@ All notable changes to the Mochimo Node.js SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-10-14
+[@NickP005](https://github.com/NickP005)
+### Added
+- **NEW**: `resolveTag(tag, apiUrl)` function for resolving Account Tags to full ledger addresses
+  - Queries Mochimo MeshAPI `/call` endpoint with `tag_resolve` method
+  - Returns full ledger address (Account Tag + DSA Hash), balance in nanoMCM and formatted MCM
+  - Supports hex string, Buffer, and 0x-prefixed formats
+  - Distinguishes between implicit and explicit accounts
+  - Located in new `src/network/account.js` module
+- **NEW**: `base58ToAddrTag(addr)` export added to main index for Base58 decoding
+- **NEW**: Example script `examples/basic/resolve-tag.js` demonstrating tag resolution
+- **NEW**: Complete documentation in `SDK_FUNCTIONS.md` for `resolveTag()` with real API examples
+- **NEW**: Export path `./account` added to package.json for direct module access
+- **NEW**: Professional CI/CD pipeline with GitHub Actions (`.github/workflows/ci.yml`)
+  - 🔍 Code quality checks (console.log, TODO/FIXME, file sizes, sensitive data patterns)
+  - 🛡️ Security audit (npm audit, outdated dependencies)
+  - 🧪 Multi-version testing (Node.js 18.x, 20.x, 22.x)
+  - 📦 Package validation (structure, documentation files, .npmignore)
+  - ✅ Automatic status badges (red/green indicators in repository)
+  - Runs on every commit to main/develop branches and pull requests
+
+### Changed
+- **REFACTORED**: `getAccountBalance()` moved from `src/network/broadcast.js` to `src/network/account.js`
+  - Groups account query functions together logically
+  - `broadcast.js` now focused solely on transaction broadcasting and network status
+  - Export maintained in main index, no breaking changes
+- **FIXED**: `transaction-builder.js` import errors resolved
+  - Removed invalid imports: `extractTag`, `getAddressInfo`, `validateAddress`
+  - Fixed undefined variable `srcLedgerAddr` → `sourceLedgerAddress`
+  - All transaction builder utilities now working correctly
+
+### Documentation
+- **UPDATED**: `SDK_FUNCTIONS.md` with comprehensive `resolveTag()` documentation
+  - Real API call examples with actual output from `kHtV35ttVpyiH42FePCiHo2iFmcJS3` tag
+- **UPDATED**: `README.md` with "Resolve an Account Tag" quick start example
+- **ADDED**: Table of Contents entry for `resolveTag()` in function reference
+
+### DevOps
+- **ADDED**: GitHub Actions CI/CD workflow for automated testing and quality assurance
+  - Ensures all 46 unit tests pass before merge
+  - Validates package structure and npm publication readiness
+  - Multi-version Node.js compatibility testing
+  - Security vulnerability scanning
+
+### Technical Details
+- MeshAPI `/call` endpoint integration with `tag_resolve` method
+- Proper error handling for tags not found on blockchain
+- Balance formatting helper function (nanoMCM to MCM conversion)
+- Validation for 20-byte Account Tag format (40 hex characters)
+
 ## [1.1.0] - 2025-10-13
 
 ### Changed - Nomenclature Improvements

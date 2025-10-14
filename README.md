@@ -125,6 +125,24 @@ console.log('Transaction ID:', result.txid);
 console.log('Success:', result.success);
 ```
 
+### Resolve an Account Tag
+
+```javascript
+import { resolveTag } from 'mochimo';
+
+// Resolve a 20-byte Account Tag to get full ledger address and balance
+const result = await resolveTag(
+  '9f810c2447a76e93b17ebff96c0b29952e4355f1',
+  'https://api.mochimo.org'
+);
+
+console.log('Account Tag:', result.accountTag);
+console.log('DSA Hash:', result.dsaHash);
+console.log('Full Ledger Address:', result.ledgerAddress);
+console.log('Balance:', result.balanceFormatted);
+console.log('Account Type:', result.accountTag === result.dsaHash ? 'Implicit' : 'Explicit');
+```
+
 ## API Reference
 
 ### Account Keypair Generation
