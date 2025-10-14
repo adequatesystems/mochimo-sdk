@@ -7,7 +7,7 @@
  */
 
 import { createTransaction } from '../core/transaction.js';
-import { extractAccountTag, extractTag, getAccountInfo, getAddressInfo, validateLedgerAddress, validateAddress } from './address-utils.js';
+import { extractAccountTag, getAccountInfo, validateLedgerAddress } from './address-utils.js';
 
 /**
  * Build a transaction with automatic account tag extraction from source ledger address.
@@ -100,7 +100,7 @@ export function buildTransaction(params) {
   }
 
   // Get source account info for helpful debugging
-  const srcInfo = getAccountInfo(srcLedgerAddr);
+  const srcInfo = getAccountInfo(sourceLedgerAddress);
 
   // Log helpful info if this is an implicit account
   if (srcInfo.implicit) {
