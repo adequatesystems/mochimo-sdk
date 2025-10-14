@@ -32,11 +32,15 @@ jobs:
       
       - name: 🔎 Check for console.log statements
         run: |
-          echo "Checking for leftover debug statements..."
-          # Check for console.log/debug/debugger but exclude JSDoc comments and example comments
-          if grep -r "console\.log\|console\.debug\|debugger" src/ --exclude-dir=node_modules | grep -v "^\s*\*" | grep -v "//"; then
-            echo "❌ Found debug statements in executable code!"
-            exit 1
+          echo "Checking for leftover debug statements in source code..."
+          # Allow console.log in JSDoc comments (lines starting with * in comments)
+          if grep -rn "console\.log\|console\.debug\|debugger" src/ --exclude-dir=node_modules | grep -v "^\s*\*.*console"; then
+            echo "⚠️  Found console statements - reviewing..."
+            # Check if they're only in JSDoc examples (lines with ' * console')
+            if grep -rn "console\.log\|console\.debug\|debugger" src/ --exclude-dir=node_modules | grep -v " \* console\|^\s*\* console"; then
+              echo "❌ Found debug statements in executable code!"
+              exit 1
+            fi
           fi
           echo "✅ No debug statements in executable code"
       

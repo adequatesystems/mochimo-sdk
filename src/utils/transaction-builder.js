@@ -99,18 +99,12 @@ export function buildTransaction(params) {
       `got ${destinationAccountTag.length} chars`);
   }
 
-  // Get source account info for helpful debugging
+  // Get source account info for validation
   const srcInfo = getAccountInfo(sourceLedgerAddress);
 
-  // Log helpful info if this is an implicit account
-  if (srcInfo.implicit) {
-    console.log('ℹ️  Source is an implicit account (first-time use, Account Tag == DSA Hash)');
-    console.log(`   Account Tag: ${srcInfo.accountTag}`);
-  } else {
-    console.log('ℹ️  Source is an explicit account (previously spent, Account Tag ≠ DSA Hash)');
-    console.log(`   Account Tag: ${srcInfo.accountTag} (will move to change account)`);
-    console.log(`   DSA Hash: ${srcInfo.dsaHash} (current WOTS+ key)`);
-  }
+  // Note: Source account type (implicit/explicit) is determined automatically
+  // - Implicit: Account Tag == DSA Hash (first-time use)
+  // - Explicit: Account Tag ≠ DSA Hash (previously spent, tag moves to change)
 
   // Create transaction with extracted account tag
   const txObj = createTransaction({
