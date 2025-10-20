@@ -2,6 +2,11 @@ import bs58 from 'bs58';
 import { crc16xmodem } from 'crc';
 
 /**
+ * Utility functions for base58 encoding/decoding of Mochimo addresses.
+ * Use these to convert between user-facing (base58+CRC) and backend (hex/binary) formats.
+ */
+
+/**
  * Convert a 20-byte address tag to base58 format with CRC16-XMODEM checksum
  * @param {Buffer} tag - 20 byte address tag
  * @returns {string} - Base58 encoded address with checksum
@@ -41,7 +46,7 @@ export function validateBase58Tag(addr) {
     const storedCsum = (decoded[21] << 8) | decoded[20];
 
     // Calculate CRC on tag portion using XMODEM
-    const actualCrc = crc16xmodem(decoded.slice(0, 20));
+  const actualCrc = crc16xmodem(decoded.subarray(0, 20));
 
     return storedCsum === actualCrc;
   } catch (e) {
@@ -59,5 +64,5 @@ export function base58ToAddrTag(addr) {
   if (decoded.length !== 22) {
     throw new Error('Invalid base58 tag length');
   }
-  return Buffer.from(decoded.slice(0, 20));
+  return Buffer.from(decoded.subarray(0, 20));
 }

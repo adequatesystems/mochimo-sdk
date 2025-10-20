@@ -1,7 +1,7 @@
 /**
  * Transaction creation and signing module
  *
- * Provides functions for creating and signing Mochimo MCM 3.0 transactions.
+ * Provides functions for creating and signing Mochimo transactions.
  */
 
 import crypto from 'crypto';
@@ -265,6 +265,7 @@ export function createTransaction(params) {
     changePk,
     balance,
     dstAccountTag,
+    dstAddress,  // Legacy parameter from v1.1.0
     amount,
     secret,
     memo = '',
@@ -274,7 +275,8 @@ export function createTransaction(params) {
 
   // === COMPREHENSIVE INPUT VALIDATION ===
 
-  const destinationTag = dstAccountTag;
+  // Support legacy dstAddress parameter (v1.1.0 compatibility)
+  const destinationTag = dstAccountTag || dstAddress;
 
   // Validate source account tag (persistent identifier)
   let srcTagBytes;
@@ -373,21 +375,21 @@ export function createTransaction(params) {
   // Source ledger address: user-provided Account Tag + WOTS DSA hash
   const srcLedgerAddrBuf = Buffer.alloc(40);
   srcTagBytes.copy(srcLedgerAddrBuf, 0);  // First 20 bytes: Account Tag
-  srcWotsDsaHash.slice(0, 20).copy(srcLedgerAddrBuf, 20);  // Last 20 bytes: DSA hash
+  srcWotsDsaHash.subarray(0, 20).copy(srcLedgerAddrBuf, 20);  // Last 20 bytes: DSA hash
 
   // Change ledger address: SAME Account Tag as source + NEW WOTS DSA hash
   const chgWotsDsaHash = addrFromWots(Buffer.from(chgWotsPk, 'hex'));
   const chgLedgerAddrBuf = Buffer.alloc(40);
   srcTagBytes.copy(chgLedgerAddrBuf, 0);  // First 20 bytes: SAME Account Tag as source (tag moves!)
-  chgWotsDsaHash.slice(0, 20).copy(chgLedgerAddrBuf, 20);  // Last 20 bytes: NEW DSA hash
+  chgWotsDsaHash.subarray(0, 20).copy(chgLedgerAddrBuf, 20);  // Last 20 bytes: NEW DSA hash
 
   const srcLedgerAddr = srcLedgerAddrBuf.toString('hex');
   const chgLedgerAddr = chgLedgerAddrBuf.toString('hex');
 
   // CRITICAL VALIDATION: Change account MUST be explicit (Account Tag ≠ DSA Hash)
   // Per Mochimo protocol (txval.c), change accounts cannot be implicit
-  const chgTag = chgLedgerAddrBuf.slice(0, 20).toString('hex');
-  const chgDsa = chgLedgerAddrBuf.slice(20, 40).toString('hex');
+  const chgTag = chgLedgerAddrBuf.subarray(0, 20).toString('hex');
+  const chgDsa = chgLedgerAddrBuf.subarray(20, 40).toString('hex');
   if (chgTag === chgDsa) {
     throw new Error(
       'Invalid change account: Change account cannot be implicit (Account Tag == DSA Hash).\n' +
@@ -429,8 +431,8 @@ export function createTransaction(params) {
 
   // Verify that the public key DSA matches the source ledger address DSA (last 20 bytes)
   const derivedWotsDsaHash = addrFromWots(keypair.publicKey);
-  const derivedDsa = derivedWotsDsaHash.slice(0, 20).toString('hex');
-  const srcDsa = srcLedgerAddrBuf.slice(20, 40).toString('hex');
+  const derivedDsa = derivedWotsDsaHash.subarray(20, 40).toString('hex');  // Use bytes 20-39 (DSA hash portion)
+  const srcDsa = srcLedgerAddrBuf.subarray(20, 40).toString('hex');
   if (derivedDsa !== srcDsa) {
     throw new Error('DSA PK hash derived from secret does not match source ledger address DSA hash');
   }

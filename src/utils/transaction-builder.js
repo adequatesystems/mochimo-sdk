@@ -7,7 +7,7 @@
  */
 
 import { createTransaction } from '../core/transaction.js';
-import { extractAccountTag, extractTag, getAccountInfo, getAddressInfo, validateLedgerAddress, validateAddress } from './address-utils.js';
+import { extractAccountTag, getAccountInfo, validateLedgerAddress } from './address-utils.js';
 
 /**
  * Build a transaction with automatic account tag extraction from source ledger address.
@@ -97,19 +97,6 @@ export function buildTransaction(params) {
   } else {
     throw new Error(`destinationAccountTag must be either 40 hex chars (account tag) or 80 hex chars (full ledger address), ` +
       `got ${destinationAccountTag.length} chars`);
-  }
-
-  // Get source account info for helpful debugging
-  const srcInfo = getAccountInfo(srcLedgerAddr);
-
-  // Log helpful info if this is an implicit account
-  if (srcInfo.implicit) {
-    console.log('ℹ️  Source is an implicit account (first-time use, Account Tag == DSA Hash)');
-    console.log(`   Account Tag: ${srcInfo.accountTag}`);
-  } else {
-    console.log('ℹ️  Source is an explicit account (previously spent, Account Tag ≠ DSA Hash)');
-    console.log(`   Account Tag: ${srcInfo.accountTag} (will move to change account)`);
-    console.log(`   DSA Hash: ${srcInfo.dsaHash} (current WOTS+ key)`);
   }
 
   // Create transaction with extracted account tag

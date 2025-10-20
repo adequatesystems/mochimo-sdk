@@ -13,11 +13,20 @@
  * @module mochimo
  */
 
-// Core functionality
+// Core functionality - Pool-based keypair generation
 export {
   generateAccountKeypair,
   generateAccountKeypairs
 } from './core/address.js';
+
+// NEW: Deterministic keypair generation (MasterSeed-based)
+export {
+  generateMasterSeed,
+  getAccountFromMasterSeed,
+  deriveKeypairForSpend,
+  deriveAccountSeed,
+  deriveAccountTag
+} from './core/deterministic.js';
 
 export { createTransaction, signTransaction, serializeTransaction } from './core/transaction.js';
 

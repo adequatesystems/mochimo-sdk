@@ -108,7 +108,7 @@ describe('Transaction Creation - SDK API', () => {
 
       // Source TAG should be in change address
       const srcTag = source.accountTag.toString('hex');
-      const chgTag = tx.changeLedgerAddress.slice(0, 40);
+  const chgTag = tx.changeLedgerAddress.substring(0, 40);
 
       expect(chgTag).toBe(srcTag);
     });
@@ -131,8 +131,8 @@ describe('Transaction Creation - SDK API', () => {
       });
 
       // Change address should be explicit (TAG ≠ DSA)
-      const chgTag = tx.changeLedgerAddress.slice(0, 40);
-      const chgDsa = tx.changeLedgerAddress.slice(40, 80);
+  const chgTag = tx.changeLedgerAddress.substring(0, 40);
+  const chgDsa = tx.changeLedgerAddress.substring(40, 80);
 
       expect(chgTag).not.toBe(chgDsa);
     });

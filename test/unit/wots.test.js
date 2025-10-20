@@ -101,12 +101,12 @@ describe('WOTS Implementation Tests - Exact Parity with Go', () => {
       expect(keypair.publicKey.length).toBe(2144);
 
       // Check first 64 bytes
-      expect(keypair.publicKey.slice(0, 64).toString('hex')).toBe(
+  expect(keypair.publicKey.subarray(0, 64).toString('hex')).toBe(
         'edd0ad035adf12b83227aa5f86918015f6c49da5560936ed31e3498f540f4a348e8bec4b05b1e556f645422c97e0843e129b8c8810d9a4b1c970cf99cffef3a6'
       );
 
       // Check last 64 bytes
-      expect(keypair.publicKey.slice(-64).toString('hex')).toBe(
+  expect(keypair.publicKey.subarray(keypair.publicKey.length - 64).toString('hex')).toBe(
         'cda1e98234ba42e1e1de08199b419fd7929d8f0fc248ee1c1c0e7fbff796d9e6bac4651df67e5c09591f3d557ecc11e54b004456f91bced00132983859665bba'
       );
     });
@@ -120,7 +120,7 @@ describe('WOTS Implementation Tests - Exact Parity with Go', () => {
       const keypair = keygen(seed);
 
       // Check first 64 bytes (Test 5)
-      expect(keypair.publicKey.slice(0, 64).toString('hex')).toBe(
+  expect(keypair.publicKey.subarray(0, 64).toString('hex')).toBe(
         'ab1ab7bb43322b0d0ae47b81e11158ebc09f438c44a8d31b07d11939396adfe5655c4092efd3435ebe78a23db5afa4dd46ebdb4c4ebda9c761b3bfd7a9ae4d17'
       );
     });
@@ -131,7 +131,7 @@ describe('WOTS Implementation Tests - Exact Parity with Go', () => {
       const keypair = keygen(seed);
 
       // Check first 64 bytes (Test 6)
-      expect(keypair.publicKey.slice(0, 64).toString('hex')).toBe(
+  expect(keypair.publicKey.subarray(0, 64).toString('hex')).toBe(
         '7adab3007c3d9c99abf5439f72f06545710963c8f531d4b6b1d3ae65c31172d9d14ed65d81b21fd67d4de9eb8fe1757da4c55e16eb3cfdb11377fe9a55a51480'
       );
     });
@@ -142,7 +142,7 @@ describe('WOTS Implementation Tests - Exact Parity with Go', () => {
       const keypair = keygen(seed);
 
       // Check first 64 bytes (Test 7)
-      expect(keypair.publicKey.slice(0, 64).toString('hex')).toBe(
+  expect(keypair.publicKey.subarray(0, 64).toString('hex')).toBe(
         '50e62d03cfa7d7c3bdd9cfe944b5d9b0738573d8ffe9afc9e202a79e9221bdc10787e91dc9e84397071ba4793edf79b5ae95f8b01b5872aeabaae15ff9a34a1e'
       );
     });
@@ -170,12 +170,12 @@ describe('WOTS Implementation Tests - Exact Parity with Go', () => {
       expect(signature.length).toBe(2144);
 
       // Check first 64 bytes
-      expect(signature.slice(0, 64).toString('hex')).toBe(
+  expect(signature.subarray(0, 64).toString('hex')).toBe(
         'edd0ad035adf12b83227aa5f86918015f6c49da5560936ed31e3498f540f4a348e8bec4b05b1e556f645422c97e0843e129b8c8810d9a4b1c970cf99cffef3a6'
       );
 
       // Check last 64 bytes
-      expect(signature.slice(-64).toString('hex')).toBe(
+  expect(signature.subarray(signature.length - 64).toString('hex')).toBe(
         'b7046784d08995e98d881c7033c2745e6053668357238103a26c5f0ae5fe5dff837e07a2a81841fe86af21623decbf2765e14c8e64a4f9e24f08b647ae5c64b9'
       );
     });

@@ -34,3 +34,7 @@ build/
 wallet-config.json
 transaction-history.json
 test-*.js
+
+# Exchange example sensitive data
+examples/exchange/data/*.txt
+examples/exchange/data/*.json
