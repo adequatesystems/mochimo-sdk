@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { generateAccount, generateAccounts } from './address-test-adapter.js';
 import { keygen } from '../../src/core/wots.js';
 
-describe('Address Generator (Tool 2) - Parity with Go Implementation', () => {
+describe('Address Generator - WOTS+ Keypair Generation', () => {
 
   describe('generateAccount', () => {
     test('should generate account with correct structure', () => {
@@ -17,28 +17,25 @@ describe('Address Generator (Tool 2) - Parity with Go Implementation', () => {
       const account = generateAccount(seed, 0);
 
       // Check structure
-      expect(account).toHaveProperty('mcmAccountNumber');
+      expect(account).toHaveProperty('accountTag');
+      expect(account).toHaveProperty('dsaHash');
       expect(account).toHaveProperty('wotsPublicKey');
       expect(account).toHaveProperty('wotsSecretKey');
 
       // Check lengths (hex encoded, so double the byte count)
-      expect(account.mcmAccountNumber).toHaveLength(20); // 20 hex characters (matches Go)
+      expect(account.accountTag).toHaveLength(40);     // 20 bytes * 2 = 40 hex chars
+      expect(account.dsaHash).toHaveLength(80);        // 40 bytes * 2 = 80 hex chars
       expect(account.wotsPublicKey).toHaveLength(4416); // 2208 bytes * 2
       expect(account.wotsSecretKey).toHaveLength(64);   // 32 bytes * 2
     });
 
-    test('should match expected account number format for index 0', () => {
+    test('should have accountTag as first 20 bytes of dsaHash', () => {
       const seed = Buffer.alloc(32, 0);
       const account = generateAccount(seed, 0);
 
-      expect(account.mcmAccountNumber).toBe('00000000000000000000');
-    });
-
-    test('should match expected account number format for index 5', () => {
-      const seed = Buffer.alloc(32, 0);
-      const account = generateAccount(seed, 5);
-
-      expect(account.mcmAccountNumber).toBe('00000000000000000005');
+      // Account Tag should be the first 20 bytes (40 hex chars) of DSA Hash
+      const firstPartOfDsaHash = account.dsaHash.substring(0, 40);
+      expect(account.accountTag).toBe(firstPartOfDsaHash);
     });
 
     test('should preserve the secret key', () => {
@@ -137,14 +134,14 @@ describe('Address Generator (Tool 2) - Parity with Go Implementation', () => {
       expect(output.accounts).toHaveLength(5);
 
       // Check each account has correct structure
-      output.accounts.forEach((account, index) => {
-        expect(account).toHaveProperty('mcmAccountNumber');
+      output.accounts.forEach((account) => {
+        expect(account).toHaveProperty('accountTag');
+        expect(account).toHaveProperty('dsaHash');
         expect(account).toHaveProperty('wotsPublicKey');
         expect(account).toHaveProperty('wotsSecretKey');
-
-        // Check account number matches index (20 hex chars to match Go)
-        const expectedAccountNum = index.toString(16).padStart(20, '0');
-        expect(account.mcmAccountNumber).toBe(expectedAccountNum);
+        
+        // Verify Account Tag is first 20 bytes of DSA Hash
+        expect(account.accountTag).toBe(account.dsaHash.substring(0, 40));
       });
     });
 
@@ -153,6 +150,7 @@ describe('Address Generator (Tool 2) - Parity with Go Implementation', () => {
 
       const secretKeys = output.accounts.map(a => a.wotsSecretKey);
       const publicKeys = output.accounts.map(a => a.wotsPublicKey);
+      const accountTags = output.accounts.map(a => a.accountTag);
 
       // All secret keys should be unique
       const uniqueSecretKeys = new Set(secretKeys);
@@ -161,38 +159,36 @@ describe('Address Generator (Tool 2) - Parity with Go Implementation', () => {
       // All public keys should be unique
       const uniquePublicKeys = new Set(publicKeys);
       expect(uniquePublicKeys.size).toBe(3);
-    });
-
-    test('should have incrementing account numbers', () => {
-      const output = generateAccounts(3);
-
-      expect(output.accounts[0].mcmAccountNumber).toBe('00000000000000000000');
-      expect(output.accounts[1].mcmAccountNumber).toBe('00000000000000000001');
-      expect(output.accounts[2].mcmAccountNumber).toBe('00000000000000000002');
+      
+      // All account tags should be unique
+      const uniqueTags = new Set(accountTags);
+      expect(uniqueTags.size).toBe(3);
     });
   });
 
-  describe('Output Format Compatibility', () => {
-    test('should match Go implementation JSON structure', () => {
+  describe('Output Format', () => {
+    test('should have correct Mochimo structure', () => {
       const output = generateAccounts(2);
 
       // Check top-level structure
       expect(output).toHaveProperty('accounts');
       expect(Array.isArray(output.accounts)).toBe(true);
 
-      // Check each account structure matches Go
+      // Check each account structure
       output.accounts.forEach(account => {
-        // Must have exactly these 3 properties
+        // Must have exactly these 4 properties
         const keys = Object.keys(account).sort();
-        expect(keys).toEqual(['mcmAccountNumber', 'wotsPublicKey', 'wotsSecretKey']);
+        expect(keys).toEqual(['accountTag', 'dsaHash', 'wotsPublicKey', 'wotsSecretKey']);
 
         // Check types
-        expect(typeof account.mcmAccountNumber).toBe('string');
+        expect(typeof account.accountTag).toBe('string');
+        expect(typeof account.dsaHash).toBe('string');
         expect(typeof account.wotsPublicKey).toBe('string');
         expect(typeof account.wotsSecretKey).toBe('string');
 
         // Check they're valid hex strings
-        expect(/^[0-9a-f]+$/.test(account.mcmAccountNumber)).toBe(true);
+        expect(/^[0-9a-f]+$/.test(account.accountTag)).toBe(true);
+        expect(/^[0-9a-f]+$/.test(account.dsaHash)).toBe(true);
         expect(/^[0-9a-f]+$/.test(account.wotsPublicKey)).toBe(true);
         expect(/^[0-9a-f]+$/.test(account.wotsSecretKey)).toBe(true);
       });
@@ -212,15 +208,6 @@ describe('Address Generator (Tool 2) - Parity with Go Implementation', () => {
   });
 
   describe('Edge Cases', () => {
-    test('should handle large account index', () => {
-      const seed = Buffer.alloc(32, 0);
-      const largeIndex = 0xFFFFFFFF;
-
-      const account = generateAccount(seed, largeIndex);
-
-      expect(account.mcmAccountNumber).toBe('000000000000ffffffff');
-    });
-
     test('should generate consistent output for same seed', () => {
       const seed = Buffer.from([
         0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x00, 0x11,
@@ -274,12 +261,13 @@ describe('Address Generator (Tool 2) - Parity with Go Implementation', () => {
       expect(output1.accounts[1].wotsSecretKey).not.toBe(output2.accounts[1].wotsSecretKey);
     });
 
-    test('should match Go test-fixed-seed output for all-zeros master seed', () => {
+    test('deterministic generation with all-zeros seed', () => {
       const masterSeed = Buffer.alloc(32, 0);
       const output = generateAccounts(1, masterSeed);
 
-      // This matches the output from test-fixed-seed.go
-      expect(output.accounts[0].mcmAccountNumber).toBe('00000000000000000000');
+      // Verify deterministic output
+      expect(output.accounts[0].accountTag).toHaveLength(40);  // 20 bytes = 40 hex chars
+      expect(output.accounts[0].dsaHash).toHaveLength(80);     // 40 bytes = 80 hex chars
       expect(output.accounts[0].wotsPublicKey).toMatch(/^7adab3007c3d9c99/);
       expect(output.accounts[0].wotsSecretKey).toBe('0000000000000000000000000000000000000000000000000000000000000000');
     });

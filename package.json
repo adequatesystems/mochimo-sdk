@@ -1,7 +1,7 @@
 {
   "name": "mochimo",
-  "version": "1.1.0",
-  "description": "A Node.js SDK for the Mochimo blockchain - address generation, transaction creation/signing, and network broadcasting",
+  "version": "2.0.0",
+  "description": "Production-ready Mochimo SDK for cryptocurrency exchange integration - deterministic key generation, transaction creation/signing, and network broadcasting",
   "type": "module",
   "main": "src/index.js",
   "exports": {
@@ -17,13 +17,13 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js test/unit",
     "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js test/integration",
-    "example:address": "node examples/basic/create-address.js",
-    "example:transaction": "node examples/basic/create-transaction.js",
-    "example:broadcast": "node examples/basic/broadcast-transaction.js",
-    "check:balance": "node examples/basic/check-balance.js",
-    "check:mempool": "node examples/basic/check-mempool.js",
-    "search:transactions": "node examples/basic/search-transactions.js",
-    "send:transaction": "node examples/basic/send-transaction.js"
+    "example:address": "node examples/reference/create-address.js",
+    "example:transaction": "node examples/reference/create-transaction.js",
+    "example:broadcast": "node examples/reference/broadcast-transaction.js",
+    "check:balance": "node examples/reference/check-balance.js",
+    "check:mempool": "node examples/reference/check-mempool.js",
+    "search:transactions": "node examples/reference/search-transactions.js",
+    "send:transaction": "node examples/reference/send-transaction.js"
   },
   "keywords": [
     "mochimo",

@@ -25,7 +25,7 @@ export function validateLedgerAddress(ledgerAddress, name = 'ledgerAddress') {
 
   if (typeof ledgerAddress === 'string') {
     // Remove 0x prefix if present
-    const cleanAddr = ledgerAddress.startsWith('0x') ? ledgerAddress.slice(2) : ledgerAddress;
+    const cleanAddr = ledgerAddress.startsWith('0x') ? ledgerAddress.substring(2) : ledgerAddress;
 
     if (!/^[0-9a-fA-F]+$/.test(cleanAddr)) {
       throw new Error(`${name} must contain only hexadecimal characters`);
@@ -59,7 +59,7 @@ export function validateAccountTag(accountTag, name = 'accountTag') {
   let tagBuf;
 
   if (typeof accountTag === 'string') {
-    const cleanTag = accountTag.startsWith('0x') ? accountTag.slice(2) : accountTag;
+    const cleanTag = accountTag.startsWith('0x') ? accountTag.substring(2) : accountTag;
 
     if (!/^[0-9a-fA-F]+$/.test(cleanTag)) {
       throw new Error(`${name} must contain only hexadecimal characters`);
@@ -90,7 +90,7 @@ export function validateAccountTag(accountTag, name = 'accountTag') {
  */
 export function extractAccountTag(ledgerAddress) {
   const addrBuf = validateLedgerAddress(ledgerAddress, 'ledgerAddress');
-  return addrBuf.slice(0, 20);
+  return addrBuf.subarray(0, 20);
 }
 
 /**
@@ -101,7 +101,7 @@ export function extractAccountTag(ledgerAddress) {
  */
 export function extractDsaHash(ledgerAddress) {
   const addrBuf = validateLedgerAddress(ledgerAddress, 'ledgerAddress');
-  return addrBuf.slice(20, 40);
+  return addrBuf.subarray(20, 40);
 }
 
 /**

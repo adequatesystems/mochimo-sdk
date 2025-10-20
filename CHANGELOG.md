@@ -5,6 +5,47 @@ All notable changes to the Mochimo Node.js SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2025-10-19
+
+### 🎉 Complete SDK Rewrite
+
+This is a ground-up rewrite of the Mochimo SDK with a focus on exchange integration with Masterseed, deterministic key generation, and production readiness.
+
+**Breaking Changes:**
+- Complete API redesign focused on exchange integration workflows
+- New deterministic wallet architecture (BIP32-style hierarchical derivation)
+- Removed legacy pool-based address generation (moved to separate module)
+- Updated transaction format handling and validation
+- New module structure and exports
+
+**New Features:**
+- **Deterministic HD Wallet Support**: Master seed → Account seed → WOTS+ keypairs with spend index management
+- **Exchange Integration Examples**: Complete workflow examples (generate, deposit, withdraw, validate, recover)
+- **Address Validation**: Base58 encoding with CRC16-XMODEM checksum validation
+- **Comprehensive Documentation**: Exchange integration guide with security best practices
+- **Production-Ready Spend Index Management**: Atomic increment safeguards and recovery procedures
+- **Withdrawal Address Validation**: Built-in validation utilities and integration examples
+
+**Architecture:**
+- Deterministic key derivation using SHA-512 HMAC
+- Per-user master seed architecture for exchanges
+- Spend index tracking and WOTS+ one-time signature enforcement
+- Improved error handling with detailed validation messages
+
+**Documentation:**
+- Complete exchange integration guide (`EXCHANGE_INTEGRATION.md`)
+- Working examples with detailed inline documentation
+- API documentation with Mochimo terminology and architecture
+- Security best practices for production deployment
+
+**Code Quality:**
+- 76 passing unit tests
+- Modernized Buffer usage (`.subarray()` instead of deprecated `.slice()`)
+- Implementation-agnostic documentation (no prescriptive backend/database details)
+- Clean, maintainable codebase with clear separation of concerns
+
+---
+
 ## [1.1.0] - 2025-10-13
 
 ### Changed - Nomenclature Improvements
@@ -40,10 +81,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Legacy function names and parameters confirmed working (backward compatible)
 
 ### Backward Compatibility
-- ✅ All legacy function names maintained as aliases
-- ✅ All legacy parameter names still accepted
-- ✅ All legacy return properties still present
-- ✅ No breaking changes for existing code
+- All legacy function names maintained as aliases
+- All legacy parameter names still accepted
+- All legacy return properties still present
+- No breaking changes for existing code
 
 ## [1.0.0] - 2025-10-12
 
@@ -55,7 +96,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive address utilities for validation and manipulation
 - Transaction builder helpers for simplified transaction creation
 - Full documentation (README.md and SDK_API_DOCUMENTATION.md)
-- Working examples in `examples/basic/` directory
+- Working examples in `examples/reference/` and `examples/exchange/` directories
 - Unit test suite with 39 passing tests
 
 ### Features

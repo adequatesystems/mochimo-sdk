@@ -156,9 +156,9 @@ export function validateImplementation(impl, vector) {
   const keypair = impl.keygen(seed);
   const publicKeyMatch = {
     length: keypair.publicKey.length === vector.publicKey.length,
-    firstBytes: keypair.publicKey.slice(0, 64).toString('hex') === vector.publicKey.firstBytes,
+  firstBytes: keypair.publicKey.subarray(0, 64).toString('hex') === vector.publicKey.firstBytes,
     lastBytes: vector.publicKey.lastBytes ?
-      keypair.publicKey.slice(-64).toString('hex') === vector.publicKey.lastBytes :
+  keypair.publicKey.subarray(keypair.publicKey.length - 64).toString('hex') === vector.publicKey.lastBytes :
       null
   };
 
@@ -171,8 +171,8 @@ export function validateImplementation(impl, vector) {
 
     signatureMatch = {
       length: signature.length === vector.signature.length,
-      firstBytes: signature.slice(0, 64).toString('hex') === vector.signature.firstBytes,
-      lastBytes: signature.slice(-64).toString('hex') === vector.signature.lastBytes,
+  firstBytes: signature.subarray(0, 64).toString('hex') === vector.signature.firstBytes,
+  lastBytes: signature.subarray(signature.length - 64).toString('hex') === vector.signature.lastBytes,
       verifies: isValid === vector.signature.isValid
     };
   }

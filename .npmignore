@@ -12,14 +12,11 @@
 .git/
 .gitignore
 
-# CI/CD
-.github/
-
 # Test files (keep test/ directory structure but not populated yet)
 test/verify-sdk-exports.js
 
 # Documentation (keep essential docs only)
-# README.md and SDK_API_DOCUMENTATION.md are included
+# README.md, CHANGELOG.md, and examples/ are included
 
 # Examples are included for users
 
