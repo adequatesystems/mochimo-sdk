@@ -36,9 +36,9 @@ export { broadcastTransaction } from './network/broadcast.js';
 // Utilities
 export {
   addrTagToBase58,
-  validateBase58Tag,
-  addrTagToBase58 as encodeBase58WithChecksum,
-  validateBase58Tag as decodeBase58WithChecksum
+  base58ToAddrTag,
+  deconstructBase58Tag,
+  validateBase58Tag
 } from './utils/base58.js';
 
 // Address utilities
@@ -65,6 +65,7 @@ export { keygen, sign, verify, wotsPkFromSig } from './core/wots.js';
 export { mochimoHash, addrFromWots } from './core/crypto.js';
 
 /**
- * SDK Version
+ * SDK Version - exposed from package.json
  */
-export const VERSION = '1.0.0';
+import { createRequire } from 'module';
+export const VERSION = createRequire(import.meta.url)('../package.json').version;
