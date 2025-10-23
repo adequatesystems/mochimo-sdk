@@ -7,6 +7,33 @@ import { crc16xmodem } from 'crc';
  */
 
 /**
+ * Parse a Mochimo Base58 address and expose its components.
+ * Returns the raw 20-byte tag, the checksum embedded in the payload,
+ * and whether that checksum matches the CRC16-XMODEM of the tag.
+ *
+ * @param {string} addr - Base58-encoded account tag with checksum
+ * @returns {{tag: Buffer, storedChecksum: number, isChecksumValid: boolean}}
+ * @throws {Error} If the address is not 22 bytes once decoded
+ */
+export function deconstructBase58Tag(addr) {
+  const decoded = bs58.decode(addr);
+  if (decoded.length !== 22) {
+    throw new Error('Invalid base58 tag length');
+  }
+
+  // Deconstruct and return elements
+  const tag = Buffer.from(decoded.subarray(0, 20));
+  const storedChecksum = (decoded[21] << 8) | decoded[20];
+  const isChecksumValid = storedChecksum === crc16xmodem(tag);
+
+  return {
+    tag,
+    storedChecksum,
+    isChecksumValid,
+  };
+}
+
+/**
  * Convert a 20-byte address tag to base58 format with CRC16-XMODEM checksum
  * @param {Buffer} tag - 20 byte address tag
  * @returns {string} - Base58 encoded address with checksum
@@ -37,18 +64,9 @@ export function addrTagToBase58(tag) {
  */
 export function validateBase58Tag(addr) {
   try {
-    const decoded = bs58.decode(addr);
-    if (decoded.length !== 22) {
-      return false;
-    }
-
-    // Get stored checksum (little-endian)
-    const storedCsum = (decoded[21] << 8) | decoded[20];
-
-    // Calculate CRC on tag portion using XMODEM
-  const actualCrc = crc16xmodem(decoded.subarray(0, 20));
-
-    return storedCsum === actualCrc;
+    // Deconstruct and return checksum validity
+    const { isChecksumValid } = deconstructBase58Tag(addr);
+    return isChecksumValid;
   } catch (e) {
     return false;
   }
@@ -60,9 +78,12 @@ export function validateBase58Tag(addr) {
  * @returns {Buffer} - 20 byte address tag
  */
 export function base58ToAddrTag(addr) {
-  const decoded = bs58.decode(addr);
-  if (decoded.length !== 22) {
-    throw new Error('Invalid base58 tag length');
+  const { tag, isChecksumValid } = deconstructBase58Tag(addr);
+
+  // Validate the checksum
+  if (!isChecksumValid) {
+    throw new Error('Invalid base58 checksum');
   }
-  return Buffer.from(decoded.subarray(0, 20));
+
+  return tag;
 }
