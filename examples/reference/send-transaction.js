@@ -11,32 +11,12 @@
  * - dstAccountTag: Destination's 20-byte account tag (40 hex chars)
  */
 
-import { createTransaction, broadcastTransaction } from '../../src/index.js';
-import { validateBase58Tag } from '../../src/utils/base58.js';
+import { createTransaction, broadcastTransaction, base58ToAddrTag } from '../../src/index.js';
 import fs from 'fs';
-import bs58 from 'bs58';
 
 const API_URL = 'https://api.mochimo.org';
 
 console.log('=== Mochimo SDK - Create and Broadcast Transaction ===\n');
-
-// Decode Base58 destination address to account tag (20 bytes)
-function decodeBase58ToAccountTag(base58Addr) {
-  try {
-    const decoded = bs58.decode(base58Addr);
-
-    // Remove the 2-byte checksum from the end
-    const addressWithoutChecksum = decoded.slice(0, -2);
-
-    // The account tag is the full 20 bytes
-    const accountTag = addressWithoutChecksum.slice(0, 20);
-
-    // Convert Uint8Array to Buffer then to hex string
-    return Buffer.from(accountTag).toString('hex'); // Return full 20 bytes (40 hex chars)
-  } catch (error) {
-    throw new Error(`Failed to decode Base58 address: ${error.message}`);
-  }
-}
 
 async function main() {
   // Load wallet configuration
@@ -55,8 +35,8 @@ async function main() {
 
   // Decode destination Base58 address
   console.log('1. Decoding destination address...');
-  const destinationHex = decodeBase58Address(config.destination.addressBase58);
-  console.log(`   ✓ Destination hex (20 bytes): ${destinationHex}`);
+  const destinationHex = base58ToAddrTag(config.destination.addressBase58).toString('hex');
+  console.log(`   ✓ Destination hex (40 chars / 20 bytes): ${destinationHex}`);
   console.log();
 
   // Transaction parameters
@@ -85,7 +65,7 @@ async function main() {
       sourcePk: config.source.publicKey, // 4416 hex chars
       changePk: config.change.publicKey, // 4416 hex chars
       balance: balance,                  // Current balance
-      dstAddress: destinationHex,        // 20 hex chars (10 bytes)
+      dstAddress: destinationHex,        // 40 hex chars (20 bytes)
       amount: amount,                    // Amount to send
       secret: config.source.seed,        // Secret key for signing
       memo: 'SDK-123',                   // Memo (must alternate: letters-numbers)
