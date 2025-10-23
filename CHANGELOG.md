@@ -5,6 +5,20 @@ All notable changes to the Mochimo Node.js SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2025-10-24
+
+### Added
+- Exported the new `deconstructBase58Tag()` helper alongside existing Base58 utilities to expose checksum metadata to consumers.
+- Introduced `npm run check:exports` for quick local verification that key SDK functions are exposed from the root module.
+
+### Changed
+- `base58ToAddrTag()` now reuses `deconstructBase58Tag()` and throws on checksum failures; `validateBase58Tag()` delegates to the same helper for consistent parsing.
+- Updated the `VERSION` constant to read directly from `package.json`, keeping runtime metadata aligned with published releases.
+- Refreshed the `examples/reference/send-transaction.js` script to consume the Base58 helpers from the main `mochimo` entry point.
+
+### Fixed
+- Ensured Base58 utilities are available via `import { base58ToAddrTag } from 'mochimo'` without relying on deep import paths.
+
 ## [2.0.0] - 2025-10-19
 
 ### 🎉 Complete SDK Rewrite
