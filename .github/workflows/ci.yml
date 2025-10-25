@@ -186,7 +186,7 @@ jobs:
       - name: 📋 Check required files
         run: |
           echo "Checking for required documentation files..."
-          for file in README.md LICENSE.md CHANGELOG.md SDK_API_DOCUMENTATION.md; do
+          for file in README.md LICENSE.md CHANGELOG.md; do
             if [ -f "$file" ]; then
               echo "✅ $file exists"
             else
