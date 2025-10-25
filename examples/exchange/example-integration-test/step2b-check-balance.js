@@ -31,7 +31,7 @@ async function checkBalance() {
     // For a new account (never spent), the ledger address is the account tag repeated twice
     // CRITICAL: Must prefix with '0x' for Rosetta API
     const ledgerAddress = `0x${accountData.accountTag}${accountData.accountTag}`;
-    
+
     console.log('Querying balance for ledger address:', ledgerAddress);
     console.log('(Account tag repeated twice = implicit address for new accounts)');
     console.log();
@@ -57,7 +57,7 @@ async function checkBalance() {
     }
 
     const data = await response.json();
-    
+
     console.log('✓ Balance query successful!');
     console.log();
     console.log('Block:', data.block_identifier?.index);
@@ -68,11 +68,11 @@ async function checkBalance() {
       const balance = data.balances[0].value;
       const balanceMCM = (BigInt(balance) / BigInt(1000000000)).toString();
       const balanceDecimal = (Number(balance) / 1000000000).toFixed(9);
-      
+
       console.log('Balance:', balance, 'nanoMCM');
       console.log('        ', balanceDecimal, 'MCM');
       console.log();
-      
+
       if (BigInt(balance) > 0) {
         console.log('✓ Funds received!');
       } else {
@@ -81,7 +81,7 @@ async function checkBalance() {
     } else {
       console.log('⚠ No balance found - account may not exist yet or transaction pending');
     }
-    
+
     console.log();
     console.log('Full response:');
     console.log(JSON.stringify(data, null, 2));

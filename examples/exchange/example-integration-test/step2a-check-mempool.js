@@ -41,7 +41,7 @@ async function checkMempool() {
     }
 
     const data = await response.json();
-    
+
     console.log('Mempool response received');
     console.log('Transaction identifiers:', data.transaction_identifiers?.length || 0, 'transactions');
     console.log();

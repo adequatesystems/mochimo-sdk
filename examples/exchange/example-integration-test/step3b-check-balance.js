@@ -1,6 +1,6 @@
 /**
  * Step 3b: Check Recipient Balance
- * 
+ *
  * Checks the balance of the recipient address to verify the withdrawal was received.
  * Built from README.md Rosetta API Integration documentation.
  */
@@ -42,12 +42,12 @@ async function checkBalance() {
     // Decode Base58 to get account tag
     const accountTagBuffer = base58ToAddrTag(RECIPIENT_ADDRESS_BASE58);
     const accountTag = accountTagBuffer.toString('hex');
-    
+
     // Per README.md: Balance queries use 40-byte ledger address
     // For new accounts (implicit address), use account tag repeated twice
     // Must have 0x prefix
     const ledgerAddress = `0x${accountTag}${accountTag}`;
-    
+
     console.log('Querying balance...');
     console.log('  Account Tag:', accountTag);
     console.log('  Ledger Address:', ledgerAddress);
@@ -74,7 +74,7 @@ async function checkBalance() {
     }
 
     const data = await response.json();
-    
+
     console.log('SUCCESS: Balance query successful!');
     console.log();
     console.log('Block:', data.block_identifier?.index);
@@ -84,11 +84,11 @@ async function checkBalance() {
     if (data.balances && data.balances.length > 0) {
       const balance = data.balances[0].value;
       const balanceMCM = (Number(balance) / 1000000000).toFixed(9);
-      
+
       console.log('Balance:', balance, 'nanoMCM');
       console.log('        ', balanceMCM, 'MCM');
       console.log();
-      
+
       const expectedAmount = accountData.lastWithdrawal.amount;
       if (BigInt(balance) >= BigInt(expectedAmount)) {
         console.log('SUCCESS: Funds received!');

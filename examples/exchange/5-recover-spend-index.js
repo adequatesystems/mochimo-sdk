@@ -1,16 +1,16 @@
 /**
  * Example 5: Recover Spend Index
- * 
+ *
  * This example demonstrates:
  * - Querying network for current DSA Hash by Account Tag
  * - Iterating through spend indices to find matching WOTS+ keypair
  * - Recovering the correct spend index from blockchain state
  * - Useful for: network forks, chain splits, state loss, disaster recovery
- * 
+ *
  * Prerequisites:
  * - Run Example 1 to create user account
  * - Account must have been spent at least once (run Example 3)
- * 
+ *
  * Use Cases:
  * - State corruption or loss
  * - Network fork/chain split recovery

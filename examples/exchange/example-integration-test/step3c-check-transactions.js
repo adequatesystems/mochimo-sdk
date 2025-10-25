@@ -1,6 +1,6 @@
 /**
  * Step 3c: Check Recipient Transaction History
- * 
+ *
  * Queries transaction history for the recipient address to verify withdrawal.
  * Built from README.md Rosetta API Integration documentation.
  */
@@ -43,11 +43,11 @@ async function checkTransactionHistory() {
     // Decode Base58 to get account tag
     const accountTagBuffer = base58ToAddrTag(RECIPIENT_ADDRESS_BASE58);
     const accountTag = accountTagBuffer.toString('hex');
-    
+
     // Per README.md: Transaction search uses 20-byte account tag (NOT 40-byte ledger address)
     // Must have 0x prefix
     const accountTagHex = `0x${accountTag}`;
-    
+
     console.log('Querying transaction history...');
     console.log('  Account Tag:', accountTag);
     console.log('  (20 bytes for transaction search)');
@@ -73,30 +73,30 @@ async function checkTransactionHistory() {
     }
 
     const data = await response.json();
-    
+
     console.log('SUCCESS: Transaction history retrieved!');
     console.log();
 
     if (data.transactions && data.transactions.length > 0) {
       console.log(`Found ${data.transactions.length} transaction(s):`);
       console.log();
-      
+
       // Look for our withdrawal transaction
       let foundOurTx = false;
-      
+
       data.transactions.forEach((tx, index) => {
         const txHash = tx.transaction_identifier?.hash.replace('0x', '');
         const isOurTx = txHash === EXPECTED_TX_ID;
-        
+
         if (isOurTx) {
           foundOurTx = true;
           console.log(`>>> WITHDRAWAL TRANSACTION FOUND <<<`);
         }
-        
+
         console.log(`Transaction ${index + 1}:`);
         console.log('  Block:', tx.block_identifier?.index);
         console.log('  TX Hash:', tx.transaction_identifier?.hash);
-        
+
         if (tx.operations) {
           console.log('  Operations:', tx.operations.length);
           tx.operations.forEach((op, i) => {
@@ -111,7 +111,7 @@ async function checkTransactionHistory() {
         }
         console.log();
       });
-      
+
       if (foundOurTx) {
         console.log('SUCCESS: Withdrawal transaction confirmed on chain!');
       } else {

@@ -140,7 +140,7 @@ describe('Address Generator - WOTS+ Keypair Generation', () => {
         expect(account).toHaveProperty('dsaHash');
         expect(account).toHaveProperty('wotsPublicKey');
         expect(account).toHaveProperty('wotsSecretKey');
-        
+
         // Verify Account Tag is first 20 bytes of DSA Hash
         expect(account.accountTag).toBe(account.dsaHash.substring(0, 40));
       });
@@ -160,7 +160,7 @@ describe('Address Generator - WOTS+ Keypair Generation', () => {
       // All public keys should be unique
       const uniquePublicKeys = new Set(publicKeys);
       expect(uniquePublicKeys.size).toBe(3);
-      
+
       // All account tags should be unique
       const uniqueTags = new Set(accountTags);
       expect(uniqueTags.size).toBe(3);
@@ -257,7 +257,7 @@ describe('Address Generator - WOTS+ Keypair Generation', () => {
       expect(output2).toEqual(output);
     });
 
-    
+
 
     test('should produce same accounts when called with same master seed', () => {
       const masterSeed = Buffer.alloc(32, 1);

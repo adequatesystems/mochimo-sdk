@@ -45,16 +45,16 @@ All API requests must follow these requirements:
    ```
 
 2. **Addresses - Different endpoints require different formats:**
-   
+
    **For Balance Queries (`/account/balance`)** - Use 40-byte ledger address:
    ```javascript
    // New account (implicit)
    address: `0x${accountTag}${accountTag}`
-   
+
    // Spent account (explicit)
    address: `0x${accountTag}${dsaHash}`
    ```
-   
+
    **For Transaction Search (`/search/transactions`)** - Use 20-byte account tag:
    ```javascript
    // Use just the account tag
@@ -154,12 +154,12 @@ const account = getAccountFromMasterSeed(masterSeed, accountIndex);
 
 ### 3. Address Format Requirements
 
-**User-Facing:**  
+**User-Facing:**
 - Always present deposit and withdrawal addresses as base58-encoded with CRC.
 - Accept only base58+CRC addresses from users.
 - Validate all user-supplied addresses before processing withdrawals.
 
-**Backend:**  
+**Backend:**
 - Decode base58+CRC addresses to binary/hex before transaction construction or API calls.
 - Never expose or request raw hex addresses from users.
 
@@ -383,13 +383,13 @@ import { generateMasterSeed, getAccountFromMasterSeed, addrTagToBase58 } from 'm
 async function createUserDepositAddress(userId) {
   // Generate a unique master seed for this user (ONE TIME ONLY)
   const masterSeed = generateMasterSeed();
-  
+
   // Derive the primary account (accountIndex = 0)
   const account = getAccountFromMasterSeed(masterSeed, 0);
-  
+
   // Convert to user-friendly base58 format
   const depositAddress = addrTagToBase58(account.accountTag);
-  
+
   // Store in database (CRITICAL: encrypt masterSeed!)
   await db.users.insert({
     user_id: userId,
@@ -401,7 +401,7 @@ async function createUserDepositAddress(userId) {
     spend_pending: false,
     created_at: new Date()
   });
-  
+
   return depositAddress;
 }
 ```
@@ -414,7 +414,7 @@ import { deriveKeypairForSpend } from 'mochimo';
 // Run this continuously (e.g., every 180 seconds) as a background service
 async function monitorDeposits() {
   const accounts = await db.users.findAll(); // Get all managed accounts
-  
+
   for (const account of accounts) {
     // Query blockchain balance using just the account tag
     const response = await fetch('https://api.mochimo.org/account/balance', {
@@ -425,17 +425,17 @@ async function monitorDeposits() {
         account_identifier: { address: account.account_tag_hex }
       })
     });
-    
+
     const data = await response.json();
     const networkBalance = data.balances[0]?.value || '0';
-    
+
     // Compare with tracked balance
     if (networkBalance !== account.balance) {
       const difference = BigInt(networkBalance) - BigInt(account.balance);
-      
+
       if (difference > 0) {
         console.log(`Deposit detected for user ${account.user_id}: ${difference} nanoMCM`);
-        
+
         // Update database balance and credit user (atomic transaction)
         await db.transaction(async (trx) => {
           await trx.users.update(
@@ -476,52 +476,52 @@ import {
 async function processWithdrawal(userId, destinationAddressBase58, withdrawalAmount) {
   // 3.1: Pre-flight checks
   const account = await db.users.findOne({ user_id: userId });
-  
+
   // Check if already pending
   if (account.spend_pending) {
     throw new Error('Address already has a pending spend - please wait');
   }
-  
+
   // Verify internal balance
   const totalRequired = BigInt(withdrawalAmount) + BigInt(500); // amount + fee
   if (BigInt(account.balance) < totalRequired) {
     throw new Error('Insufficient balance');
   }
-  
+
   // Validate destination address
   if (!validateBase58Tag(destinationAddressBase58)) {
     throw new Error('Invalid withdrawal address');
   }
-  
+
   const destinationTag = base58ToAddrTag(destinationAddressBase58).toString('hex');
-  
+
   // 3.2: Decrypt master seed and derive keypairs
   const masterSeed = decryptMasterSeed(account.master_seed);
   const currentSpendIndex = account.spend_index;
-  
+
   const sourceKeypair = deriveKeypairForSpend(masterSeed, currentSpendIndex, account.account_index);
   const changeKeypair = deriveKeypairForSpend(masterSeed, currentSpendIndex + 1, account.account_index);
-  
+
   // 3.3: Query current blockchain balance
   const balanceResponse = await fetch('https://api.mochimo.org/account/balance', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       network_identifier: { blockchain: 'mochimo', network: 'mainnet' },
-      account_identifier: { 
-        address: `0x${account.account_tag_hex}${sourceKeypair.dsaHashHex.substring(0, 40)}` 
+      account_identifier: {
+        address: `0x${account.account_tag_hex}${sourceKeypair.dsaHashHex.substring(0, 40)}`
       }
     })
   });
-  
+
   const balanceData = await balanceResponse.json();
   const currentBalance = balanceData.balances[0].value;
-  
+
   // Verify blockchain balance
   if (BigInt(currentBalance) < totalRequired) {
     throw new Error('Insufficient blockchain balance');
   }
-  
+
   // 3.4: Create and sign transaction
   const txResult = createTransaction({
     srcTag: account.account_tag_hex,
@@ -533,13 +533,13 @@ async function processWithdrawal(userId, destinationAddressBase58, withdrawalAmo
     secret: sourceKeypair.secretKeyHex,
     fee: 500
   });
-  
+
   // 3.5: Mark as pending BEFORE broadcast
   await db.users.update(
     { user_id: userId },
     { spend_pending: true }
   );
-  
+
   // 3.6: Broadcast transaction
   try {
     await broadcastTransaction(txResult.transaction);
@@ -551,7 +551,7 @@ async function processWithdrawal(userId, destinationAddressBase58, withdrawalAmo
     );
     throw new Error(`Broadcast failed: ${error.message}`);
   }
-  
+
   // 3.7: Verify in mempool
   const mempoolResponse = await fetch('https://api.mochimo.org/mempool', {
     method: 'POST',
@@ -561,10 +561,10 @@ async function processWithdrawal(userId, destinationAddressBase58, withdrawalAmo
     })
   });
   const mempoolData = await mempoolResponse.json();
-  
+
   // Log for monitoring (implement your mempool verification logic)
   console.log(`Transaction broadcast for user ${userId}. Monitor for confirmation.`);
-  
+
   // 3.8: Return transaction ID for tracking
   return {
     txId: txResult.transactionHash,
@@ -580,32 +580,32 @@ async function processWithdrawal(userId, destinationAddressBase58, withdrawalAmo
 // Run this as a separate background service
 async function monitorPendingWithdrawals() {
   const pendingAccounts = await db.users.findAll({ spend_pending: true });
-  
+
   for (const account of pendingAccounts) {
     // Query current blockchain state
     const masterSeed = decryptMasterSeed(account.master_seed);
     const nextSpendIndex = account.spend_index + 1;
     const nextKeypair = deriveKeypairForSpend(masterSeed, nextSpendIndex, account.account_index);
-    
+
     // Check if the change address (next spend) has balance
     const response = await fetch('https://api.mochimo.org/account/balance', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         network_identifier: { blockchain: 'mochimo', network: 'mainnet' },
-        account_identifier: { 
-          address: `0x${account.account_tag_hex}${nextKeypair.dsaHashHex.substring(0, 40)}` 
+        account_identifier: {
+          address: `0x${account.account_tag_hex}${nextKeypair.dsaHashHex.substring(0, 40)}`
         }
       })
     });
-    
+
     const data = await response.json();
     const changeBalance = data.balances[0]?.value || '0';
-    
+
     // If change address has balance, transaction is confirmed
     if (BigInt(changeBalance) > 0) {
       console.log(`Withdrawal confirmed for user ${account.user_id}`);
-      
+
       // Finalize: unmark pending and increment spend index (atomic)
       await db.transaction(async (trx) => {
         await trx.users.update(
@@ -860,7 +860,7 @@ for (let testIndex = 0; testIndex < 1000; testIndex++) {
   const kp = deriveKeypairForSpend(masterSeed, testIndex, accountIndex);
   // Extract DSA hash component from the 40-byte implicit address
   const derivedDsaHash = kp.dsaHash.toString('hex').slice(40, 80);
-  
+
   if (derivedDsaHash === networkDsaHash) {
     console.log('Recovered spend index:', testIndex);
     break;
@@ -899,7 +899,7 @@ function processWithdrawal(userAddress, amount) {
   if (!validateBase58Tag(userAddress)) {
     throw new Error('Invalid Mochimo address format');
   }
-  
+
   // Step 2: Decode to get account tag buffer
   let accountTagBuffer;
   try {
@@ -907,15 +907,15 @@ function processWithdrawal(userAddress, amount) {
   } catch (error) {
     throw new Error('Address decoding failed: ' + error.message);
   }
-  
+
   // Step 3: Verify decoded length
   if (accountTagBuffer.length !== 20) {
     throw new Error('Invalid account tag length');
   }
-  
+
   // Step 4: Convert to hex for transaction
   const destinationTag = accountTagBuffer.toString('hex');
-  
+
   // Step 5: Proceed with transaction
   // ... create and sign transaction ...
 }
@@ -951,14 +951,14 @@ function validateAddressInput(input) {
 // Backend validation (before processing)
 app.post('/api/withdraw', async (req, res) => {
   const { address, amount } = req.body;
-  
+
   // Validate address
   if (!validateBase58Tag(address)) {
-    return res.status(400).json({ 
-      error: 'Invalid withdrawal address. Please check and try again.' 
+    return res.status(400).json({
+      error: 'Invalid withdrawal address. Please check and try again.'
     });
   }
-  
+
   // Process withdrawal
   try {
     const accountTag = base58ToAddrTag(address);
@@ -1097,7 +1097,7 @@ node 1-generate-user-account.js
 ```
 
 #### "Insufficient balance"
-**Solution:** 
+**Solution:**
 1. Send MCM to the Account Tag first
 2. Wait for network confirmation
 3. Run Example 2 to verify balance

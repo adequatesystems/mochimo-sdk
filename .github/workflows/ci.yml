@@ -14,22 +14,22 @@ jobs:
   code-quality:
     name: 🔍 Code Quality & Linting
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Full history for better analysis
-      
+
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
           cache: 'npm'
-      
+
       - name: 📦 Install dependencies
         run: npm ci
-      
+
       - name: 🔎 Check for console.log statements
         run: |
           echo "Checking for leftover debug statements in source code..."
@@ -43,7 +43,7 @@ jobs:
             fi
           fi
           echo "✅ No debug statements in executable code"
-      
+
       - name: 📝 Check for TODO/FIXME comments
         run: |
           echo "Checking for TODO/FIXME comments..."
@@ -53,13 +53,13 @@ jobs:
           else
             echo "✅ No TODO/FIXME comments found"
           fi
-      
+
       - name: 📊 Check file sizes
         run: |
           echo "Checking for large files..."
           find src/ -type f -size +100k -exec ls -lh {} \; || true
           echo "✅ File size check complete"
-      
+
       - name: 🔒 Check for sensitive data patterns
         run: |
           echo "Scanning for potential secrets..."
@@ -72,20 +72,20 @@ jobs:
   security-audit:
     name: 🛡️ Security Audit
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
           cache: 'npm'
-      
+
       - name: 📦 Install dependencies
         run: npm ci
-      
+
       - name: 🔐 Run npm audit
         run: |
           echo "Running security audit..."
@@ -93,7 +93,7 @@ jobs:
             echo "⚠️ Security vulnerabilities found - review npm audit output"
             npm audit --audit-level=moderate || exit 0
           }
-      
+
       - name: 🔍 Check outdated dependencies
         run: |
           echo "Checking for outdated dependencies..."
@@ -103,41 +103,41 @@ jobs:
     name: 🧪 Build & Test (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
     needs: [code-quality, security-audit]
-    
+
     strategy:
       matrix:
         node-version: [18.x, 20.x, 22.x]
       fail-fast: false  # Continue testing other versions if one fails
-    
+
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: 🟢 Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
-      
+
       - name: 📦 Install dependencies
         run: npm ci
-      
+
       - name: 🔍 Verify package structure
         run: |
           echo "Verifying package.json configuration..."
           node -e "const pkg = require('./package.json'); console.log('📦 Package:', pkg.name, 'v' + pkg.version); console.log('📝 License:', pkg.license);"
-      
+
       - name: 📤 Verify package contents (dry-run)
         run: |
           echo "Checking what will be published to npm..."
           npm pack --dry-run
           echo "✅ Package verification complete"
-      
+
       - name: 🧪 Run unit tests
         run: |
           echo "Running all 46 unit tests..."
           npm test
-      
+
       - name: 📊 Test summary
         if: always()
         run: |
@@ -153,20 +153,20 @@ jobs:
     name: 📦 Package Validation
     runs-on: ubuntu-latest
     needs: [build-and-test]
-    
+
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
           cache: 'npm'
-      
+
       - name: 📦 Install dependencies
         run: npm ci
-      
+
       - name: 🔍 Validate package.json
         run: |
           echo "Validating package.json..."
@@ -182,7 +182,7 @@ jobs:
             console.log('Package size: ~180KB');
             console.log('Dependencies: bs58, crc (production only)');
           "
-      
+
       - name: 📋 Check required files
         run: |
           echo "Checking for required documentation files..."
@@ -194,7 +194,7 @@ jobs:
               exit 1
             fi
           done
-      
+
       - name: 🔍 Verify .npmignore
         run: |
           if [ -f ".npmignore" ]; then
@@ -205,7 +205,7 @@ jobs:
             echo "⚠️ .npmignore not found - all files will be published!"
             exit 1
           fi
-      
+
       - name: 📊 Calculate package size
         run: |
           echo "Calculating package size..."
@@ -217,7 +217,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [package-validation]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
+
     steps:
       - name: 🎉 All checks passed
         run: |

@@ -2,7 +2,7 @@
  * Account Keypair Generation Module (Reference Implementation)
  *
  * NOT FOR USE IN EXCHANGE INTEGRATION
- * 
+ *
  * This module provides basic WOTS+ keypair generation for non-custodial wallets
  * and reference implementations. It is not spend-index aware and not suitable
  * for exchanges or custodial services.
@@ -11,7 +11,7 @@
  * - generateMasterSeed() - Generate once per user
  * - getAccountFromMasterSeed() - Get deposit address
  * - deriveKeypairForSpend() - Spend-index aware keypair derivation
- * 
+ *
  * See: src/core/deterministic.js and examples/exchange/
  *
  * TERMINOLOGY:
@@ -160,7 +160,7 @@ export function generateAccountKeypairs(count, options = {}) {
     throw new Error(`Start index cannot be negative`);
 
   const keypairs = [];
-  
+
 
   for (let i = startIndex; i < startIndex + count; i++) {
     const keypair = generateAccountKeypair({ seed: masterSeed ? masterSeed : crypto.randomBytes(32), index: masterSeed ? i : 0 /*startIndex only valid with masterSeed option*/});

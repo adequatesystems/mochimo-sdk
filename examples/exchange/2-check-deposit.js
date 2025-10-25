@@ -1,11 +1,11 @@
 /**
  * Example 2: Check Deposit
- * 
+ *
  * This example demonstrates:
  * - Loading the user account created in Example 1
  * - Checking for transactions in the mempool
  * - Verifying the account balance
- * 
+ *
  * Prerequisites:
  * - Run Example 1 first to create user account
  * - User must send MCM to the Account Tag (deposit address)

@@ -1,10 +1,10 @@
 /**
  * Example 4: Validate Withdrawal Address
- * 
+ *
  * This example demonstrates how to validate user-supplied withdrawal addresses
  * before processing transactions. This is critical for exchange integration to
  * prevent sending funds to invalid or malformed addresses.
- * 
+ *
  * Key Points:
  * - Users always provide base58+CRC addresses
  * - Validate format and checksum before processing
@@ -107,9 +107,9 @@ const testCases = [
 testCases.forEach(({ label, address }) => {
   console.log(`Test: ${label}`);
   console.log(`Input: ${address || '(empty/null)'}`);
-  
+
   const result = validateWithdrawalAddress(address);
-  
+
   if (result.valid) {
     console.log('✅ VALID');
     console.log(`   Account Tag (hex): ${result.accountTag.toString('hex')}`);
@@ -137,39 +137,39 @@ function exampleWithdrawalEndpoint() {
 // Express.js example
 app.post('/api/withdraw', async (req, res) => {
   const { address, amount, userId } = req.body;
-  
+
   // Validate withdrawal address
   const validation = validateWithdrawalAddress(address);
-  
+
   if (!validation.valid) {
-    return res.status(400).json({ 
+    return res.status(400).json({
       success: false,
       error: validation.error,
       message: 'Please check your withdrawal address and try again.'
     });
   }
-  
+
   try {
     // Convert to hex for transaction
     const destinationTag = validation.accountTag.toString('hex');
-    
+
     // Process withdrawal with validated address
     const txId = await processUserWithdrawal({
       userId,
       destinationTag,
       amount
     });
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       transactionId: txId,
       destinationAddress: address  // Echo back the base58 address
     });
-    
+
   } catch (error) {
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: 'Withdrawal processing failed: ' + error.message 
+      error: 'Withdrawal processing failed: ' + error.message
     });
   }
 });
@@ -192,21 +192,21 @@ function validateAddressInput(input) {
   if (!input) {
     return { valid: false, message: 'Address is required' };
   }
-  
+
   // You can import the SDK in frontend if using a bundler
   // Or make an API call to your backend for validation
   try {
     if (!validateBase58Tag(input)) {
-      return { 
-        valid: false, 
-        message: 'Invalid Mochimo address format' 
+      return {
+        valid: false,
+        message: 'Invalid Mochimo address format'
       };
     }
     return { valid: true, message: 'Valid address' };
   } catch (error) {
-    return { 
-      valid: false, 
-      message: 'Invalid address: ' + error.message 
+    return {
+      valid: false,
+      message: 'Invalid address: ' + error.message
     };
   }
 }
@@ -215,19 +215,19 @@ function validateAddressInput(input) {
 function WithdrawalForm() {
   const [address, setAddress] = useState('');
   const [validation, setValidation] = useState(null);
-  
+
   const handleAddressChange = (e) => {
     const input = e.target.value;
     setAddress(input);
-    
+
     // Validate on change
     const result = validateAddressInput(input);
     setValidation(result);
   };
-  
+
   return (
     <div>
-      <input 
+      <input
         type="text"
         value={address}
         onChange={handleAddressChange}
@@ -238,7 +238,7 @@ function WithdrawalForm() {
           {validation.message}
         </div>
       )}
-      <button 
+      <button
         disabled={!validation?.valid}
         onClick={handleSubmit}
       >

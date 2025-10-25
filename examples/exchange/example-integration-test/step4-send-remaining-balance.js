@@ -1,6 +1,6 @@
 /**
  * Step 4: Send Remaining Balance
- * 
+ *
  * Tests that the change address from the previous withdrawal is spendable.
  * This verifies that spend index 1 works correctly after incrementing.
  */
@@ -187,7 +187,7 @@ console.log('-'.repeat(70));
 
 async function broadcastTransaction(txBuffer) {
   const txHex = txBuffer.toString('hex');
-  
+
   console.log('Broadcasting transaction...');
   console.log('  Size:', txBuffer.length, 'bytes');
 
@@ -216,7 +216,7 @@ let txId;
 try {
   const broadcastResult = await broadcastTransaction(txResult.transaction);
   txId = broadcastResult.transaction_identifier.hash;
-  
+
   console.log('SUCCESS: Transaction broadcast!');
   console.log('  TX ID:', txId);
 } catch (error) {

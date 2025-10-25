@@ -1,6 +1,6 @@
 /**
  * Step 3a: Check Mempool for Withdrawal
- * 
+ *
  * Monitors the mempool for our withdrawal transaction.
  * Built from README.md documentation.
  */
@@ -41,7 +41,7 @@ console.log();
 async function checkMempool() {
   try {
     console.log('Querying mempool...');
-    
+
     // Per README.md: Network identifier must be lowercase 'mochimo'
     const response = await fetch(`${API_URL}/mempool`, {
       method: 'POST',
@@ -59,7 +59,7 @@ async function checkMempool() {
     }
 
     const data = await response.json();
-    
+
     console.log('Mempool query successful');
     console.log('  Total transactions:', data.transaction_identifiers?.length || 0);
     console.log();

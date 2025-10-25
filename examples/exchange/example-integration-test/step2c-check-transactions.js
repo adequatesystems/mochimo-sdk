@@ -30,7 +30,7 @@ async function checkTransactionHistory() {
     // CRITICAL: /search/transactions uses the 20-byte ACCOUNT TAG, not the 40-byte ledger address
     // Must prefix with '0x' for Rosetta API
     const accountTagHex = `0x${accountData.accountTag}`;
-    
+
     console.log('Querying transaction history for account tag:', accountTagHex);
     console.log('(Note: search/transactions uses 20-byte account tag, NOT 40-byte ledger address)');
     console.log();
@@ -56,19 +56,19 @@ async function checkTransactionHistory() {
     }
 
     const data = await response.json();
-    
+
     console.log('✓ Transaction history query successful!');
     console.log();
 
     if (data.transactions && data.transactions.length > 0) {
       console.log(`Found ${data.transactions.length} transaction(s):`);
       console.log();
-      
+
       data.transactions.forEach((tx, index) => {
         console.log(`Transaction ${index + 1}:`);
         console.log('  Block:', tx.block_identifier?.index);
         console.log('  TX Hash:', tx.transaction_identifier?.hash);
-        
+
         if (tx.transaction?.operations) {
           console.log('  Operations:', tx.transaction.operations.length);
           tx.transaction.operations.forEach((op, i) => {
@@ -83,7 +83,7 @@ async function checkTransactionHistory() {
       console.log('⚠ No transactions found for this address');
       console.log('  Transaction may still be pending confirmation');
     }
-    
+
     console.log('Full response:');
     console.log(JSON.stringify(data, null, 2));
   } catch (error) {

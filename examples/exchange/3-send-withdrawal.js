@@ -1,6 +1,6 @@
 /**
  * Example 3: Send Withdrawal
- * 
+ *
  * This example demonstrates:
  * - Loading user account and master seed
  * - Deriving the current WOTS+ keypair (for signing)
@@ -9,7 +9,7 @@
  * - Broadcasting to the network
  * - Verifying transaction in mempool
  * - Updating spend index
- * 
+ *
  * Prerequisites:
  * - Run Example 1 to create user account
  * - Run Example 2 to verify account has funds
@@ -124,7 +124,7 @@ console.log();
 async function checkBalance(accountTag, currentSpendIndex) {
   try {
     let ledgerAddress;
-    
+
     if (currentSpendIndex === 0) {
       // Implicit address (never spent before)
       ledgerAddress = `0x${accountTag}${accountTag}`;

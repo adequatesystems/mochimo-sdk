@@ -1,6 +1,6 @@
 /**
  * Step 3: Send Withdrawal
- * 
+ *
  * Demonstrates the complete withdrawal workflow:
  * - Validate destination address
  * - Check current balance
@@ -82,7 +82,7 @@ console.log('-'.repeat(70));
 
 async function checkBalance(accountTag, spendIndex) {
   let ledgerAddress;
-  
+
   if (spendIndex === 0) {
     // For new accounts (never spent), use account tag repeated
     ledgerAddress = `0x${accountTag}${accountTag}`;
@@ -210,7 +210,7 @@ console.log('-'.repeat(70));
 
 async function broadcastTransaction(txBuffer) {
   const txHex = txBuffer.toString('hex');
-  
+
   console.log('Broadcasting transaction...');
   console.log('  Size:', txBuffer.length, 'bytes');
 
@@ -239,7 +239,7 @@ let txId;
 try {
   const broadcastResult = await broadcastTransaction(txResult.transaction);
   txId = broadcastResult.transaction_identifier.hash;
-  
+
   console.log('SUCCESS: Transaction broadcast!');
   console.log('  TX ID:', txId);
 } catch (error) {

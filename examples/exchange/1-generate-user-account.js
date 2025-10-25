@@ -1,11 +1,11 @@
 /**
  * Example 1: Generate User Account
- * 
+ *
  * This example demonstrates:
  * - Generating a master seed (done once PER USER at registration)
  * - Deriving a user account from that user's master seed
  * - Getting the Account Tag (deposit address) for the user
- * 
+ *
  * In production:
  * - Master seed is generated ONCE PER USER and stored encrypted
  * - Each user has their own isolated master seed
@@ -73,7 +73,7 @@ console.log();
 // In production, EACH USER gets their own master seed (generated above)
 // The account index lets you create multiple deposit addresses for a single user
 // Most exchanges use accountIndex = 0 (one deposit address per user)
-// 
+//
 // If you need multiple deposit addresses for the same user:
 //   - accountIndex = 0: Primary deposit address
 //   - accountIndex = 1: Secondary deposit address (optional)

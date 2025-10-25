@@ -77,15 +77,15 @@ export async function resolveTag(tag, apiUrl) {
   } else if (typeof tag === 'string') {
     // Remove 0x prefix if present
     const cleanTag = tag.startsWith('0x') ? tag.slice(2) : tag;
-    
+
     if (!/^[0-9a-fA-F]+$/.test(cleanTag)) {
       throw new Error('Tag must contain only hexadecimal characters');
     }
-    
+
     if (cleanTag.length !== 40) {
       throw new Error('Tag must be 40 hex characters (20 bytes)');
     }
-    
+
     tagHex = cleanTag;
   } else {
     throw new Error('Tag must be a hex string or Buffer');
@@ -129,8 +129,8 @@ export async function resolveTag(tag, apiUrl) {
     }
 
     // Extract full ledger address (remove 0x prefix)
-    const ledgerAddress = data.result.address.startsWith('0x') 
-      ? data.result.address.slice(2) 
+    const ledgerAddress = data.result.address.startsWith('0x')
+      ? data.result.address.slice(2)
       : data.result.address;
 
     // Validate ledger address length (should be 80 hex chars = 40 bytes)

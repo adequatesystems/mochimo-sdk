@@ -58,7 +58,7 @@ const keypair = deriveKeypairForSpend(masterSeed, spendIndex, 0);
 
 ### Key Concepts for Exchanges
 
-Mochimo uses **WOTS+ (Winternitz One-Time Signature Plus)** - a quantum-resistant signature scheme. 
+Mochimo uses **WOTS+ (Winternitz One-Time Signature Plus)** - a quantum-resistant signature scheme.
 
 **What you need to know:**
 - Each user gets **one master seed** (generate once, store encrypted)
@@ -754,7 +754,7 @@ console.log(tx);
 - `changeTotal` (BigInt)
 - `feeTotal` (BigInt)
 
-**Important**: 
+**Important**:
 - All amounts are in **nanoMCM** (1 MCM = 1,000,000,000 nanoMCM)
 - Minimum fee is **500 nanoMCM**
 - Change goes to `changePk` address (should be a NEW keypair from your account)
@@ -845,10 +845,10 @@ try {
     apiUrl,
     { timeout: 30000, retries: 2 }
   );
-  
+
   console.log('Transaction ID:', result.txid);
   console.log('Success:', result.success);
-  
+
   // NOW safe to increment spend_index in database
 } catch (error) {
   console.error('Broadcast failed:', error.message);
