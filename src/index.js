@@ -31,7 +31,8 @@ export {
 export { createTransaction, signTransaction, serializeTransaction } from './core/transaction.js';
 
 // Network functionality
-export { broadcastTransaction } from './network/broadcast.js';
+export { broadcastTransaction, getNetworkStatus } from './network/broadcast.js';
+export { getAccountBalance, resolveTag } from './network/account.js';
 
 // Utilities
 export {

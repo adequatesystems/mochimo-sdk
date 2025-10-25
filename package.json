@@ -9,6 +9,7 @@
     "./address": "./src/core/address.js",
     "./transaction": "./src/core/transaction.js",
     "./network": "./src/network/broadcast.js",
+    "./account": "./src/network/account.js",
     "./wots": "./src/core/wots.js",
     "./crypto": "./src/core/crypto.js",
     "./base58": "./src/utils/base58.js"

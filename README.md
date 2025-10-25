@@ -876,6 +876,95 @@ try {
 
 ---
 
+### Network Requests
+
+#### `getAccountBalance(address, apiUrl)`
+Queries the Rosetta `/account/balance` endpoint for a ledger address and returns the raw balance payload.
+
+```javascript
+import { getAccountBalance } from 'mochimo';
+
+const apiUrl = 'https://api.mochimo.org';
+const ledgerAddress = `0x${accountTag}${dsaHash}`; // 40-byte ledger address with 0x prefix
+const balance = await getAccountBalance(ledgerAddress, apiUrl);
+
+console.log('Balance (nanoMCM):', balance.balance);
+console.log('Currency:', balance.currency.symbol);
+console.log('Block Height:', balance.block.index);
+```
+
+**Parameters**:
+- `address` (string) – Ledger address to query (`0x` + 80 hex chars). Implicit accounts can use `0x${accountTag}${accountTag}`.
+- `apiUrl` (string) – Rosetta API endpoint, e.g. `https://api.mochimo.org`
+
+**Returns**: Object with:
+- `address` (string) – Address that was queried (pass-through)
+- `balance` (string) – Balance in nanoMCM (Rosetta integer-as-string format)
+- `currency` (Object) – Rosetta currency descriptor `{ symbol, decimals }`
+- `block` (Object) – Rosetta block identifier for the balance snapshot
+
+---
+
+#### `getNetworkStatus(apiUrl)`
+Fetches chain synchronization details (current height, genesis info, peers) from the Rosetta `/network/status` endpoint.
+
+```javascript
+import { getNetworkStatus } from 'mochimo';
+
+const apiUrl = 'https://api.mochimo.org';
+const status = await getNetworkStatus(apiUrl);
+
+console.log('Current Height:', status.current_block_identifier.index);
+console.log('Current Hash:', status.current_block_identifier.hash);
+console.log('Peers:', status.peers.length);
+```
+
+**Parameters**:
+- `apiUrl` (string) – Rosetta API endpoint, e.g. `https://api.mochimo.org`
+
+**Returns**: Promise resolving to the Rosetta `network/status` response containing:
+- `current_block_identifier` (Object) – Latest block index/hash the node reports
+- `current_block_timestamp` (number) – Milliseconds since epoch for the latest block
+- `genesis_block_identifier` (Object) – Chain genesis reference
+- `oldest_block_identifier` (Object|undefined) – Oldest block retained by the node (optional)
+- `peers` (Array) – Known peer endpoints reported by the node
+
+---
+
+#### `resolveTag(tag, apiUrl)`
+Resolves a 20-byte account tag to its current ledger address, balance, and implicit/explicit status via the Mesh API.
+
+```javascript
+import { resolveTag } from 'mochimo';
+
+const result = await resolveTag(
+  '9f810c2447a76e93b17ebff96c0b29952e4355f1',
+  'https://api.mochimo.org'
+);
+
+console.log('Account Tag:', result.accountTag);
+console.log('DSA Hash:', result.dsaHash);
+console.log('Ledger Address:', result.ledgerAddress);
+console.log('Account Type:', result.accountTag === result.dsaHash ? 'Implicit' : 'Explicit');
+console.log('Balance:', result.balanceFormatted);
+console.log('Found:', result.found);
+```
+
+**Parameters**:
+- `tag` (string|Buffer) – Account tag to resolve (20 bytes / 40 hex characters)
+- `apiUrl` (string) – Mesh API endpoint, e.g. `https://api.mochimo.org`
+
+**Returns**: Object with:
+- `accountTag` (string) – Normalized 40-hex account tag
+- `dsaHash` (string|null) – Current DSA hash (null if tag not found)
+- `ledgerAddress` (string|null) – Full 80-hex ledger address when present
+- `balance` (string|number) – Balance in nanoMCM
+- `balanceFormatted` (string) – Balance formatted in MCM
+- `found` (boolean) – Indicates whether the tag exists on-chain
+- `error` (string, optional) – Present if `found` is `false`
+
+---
+
 ### Low-Level Exports (Advanced Users)
 
 These functions are exported for advanced users who need low-level control. Most integrators should use the higher-level functions above.
