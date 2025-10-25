@@ -2,6 +2,7 @@ import { describe, expect, test } from '@jest/globals';
 import crypto from 'crypto';
 import { generateAccount, generateAccounts } from './address-test-adapter.js';
 import { keygen } from '../../src/core/wots.js';
+import { generateAccountKeypair } from '../../src/core/address.js';
 
 describe('Address Generator - WOTS+ Keypair Generation', () => {
 
@@ -47,8 +48,9 @@ describe('Address Generator - WOTS+ Keypair Generation', () => {
       ]);
 
       const account = generateAccount(seed, 0);
+      const accountKeyPair = generateAccountKeypair({seed: seed, index: 0})
 
-      expect(account.wotsSecretKey).toBe(seed.toString('hex'));
+      expect(account.wotsSecretKey).toBe(accountKeyPair.secretKey.toString('hex'));
     });
 
     test('should include WOTS public key in correct format', () => {
@@ -60,11 +62,9 @@ describe('Address Generator - WOTS+ Keypair Generation', () => {
       ]);
 
       const account = generateAccount(seed, 0);
-      const keypair = keygen(seed);
+      const accountKeyPair = generateAccountKeypair({seed: seed, index: 0})
 
-      // The first 2144 bytes should match the WOTS public key
-      const accountPubKey = account.wotsPublicKey.substring(0, 2144 * 2);
-      expect(accountPubKey).toBe(keypair.publicKey.toString('hex'));
+      expect(account.wotsPublicKey).toBe(accountKeyPair.publicKey.toString('hex'));
     });
 
     test('should include public seed in correct position', () => {
@@ -76,11 +76,12 @@ describe('Address Generator - WOTS+ Keypair Generation', () => {
       ]);
 
       const account = generateAccount(seed, 0);
-      const keypair = keygen(seed);
+      const accountKeyPair = generateAccountKeypair({seed: seed, index: 0})
 
       // Extract public seed from position 2144 to 2176 (32 bytes)
       const publicSeedFromAccount = account.wotsPublicKey.substring(2144 * 2, (2144 + 32) * 2);
-      expect(publicSeedFromAccount).toBe(keypair.components.publicSeed.toString('hex'));
+      const publicSeedFromAccountKeyPair = accountKeyPair.publicKey.toString('hex').substring(2144 * 2, (2144 + 32) * 2);
+      expect(publicSeedFromAccount).toBe(publicSeedFromAccountKeyPair);
     });
 
     test('should include address seed in correct position', () => {
@@ -92,12 +93,12 @@ describe('Address Generator - WOTS+ Keypair Generation', () => {
       ]);
 
       const account = generateAccount(seed, 0);
-      const keypair = keygen(seed);
+      const accountKeyPair = generateAccountKeypair({seed: seed, index: 0})
 
       // Extract address seed from position 2176 to 2208-12=2196 (20 bytes)
       // The last 12 bytes are the default tag, so address seed is only the first 20 bytes
       const addrSeedFromAccount = account.wotsPublicKey.substring((2144 + 32) * 2, 2208 * 2 - 12 * 2);
-      const expectedAddrSeed = keypair.components.addrSeed.toString('hex').substring(0, 40); // First 20 bytes
+      const expectedAddrSeed = accountKeyPair.publicKey.toString('hex').substring((2144 + 32) * 2, 2208 * 2 - 12 * 2)
       expect(addrSeedFromAccount).toBe(expectedAddrSeed);
     });
 
@@ -231,17 +232,32 @@ describe('Address Generator - WOTS+ Keypair Generation', () => {
 
       expect(output.accounts).toHaveLength(3);
 
-      // First account should use master seed directly
-      expect(output.accounts[0].wotsSecretKey).toBe('0000000000000000000000000000000000000000000000000000000000000000');
+      expect(output.accounts[0].wotsSecretKey).toBe('2c34ce1df23b838c5abf2a7f6437cca3d3067ed509ff25f11df6b11b582b51eb');
+      expect(output.accounts[1].wotsSecretKey).toBe('19ea44be89eece0fd4ec7482049f472a11af19384bffb38a88e77b3b1dd54c19');
+      expect(output.accounts[2].wotsSecretKey).toBe('1de986ac168dcfb8a52b6320497a49a9cb6e9e9728ab59cfbb4b0d44da18fc04');
 
-      // Second account should use SHA256(master seed)
-      const expectedSeed1 = crypto.createHash('sha256').update(masterSeed).digest();
-      expect(output.accounts[1].wotsSecretKey).toBe(expectedSeed1.toString('hex'));
 
-      // Third account should use SHA256(SHA256(master seed))
-      const expectedSeed2 = crypto.createHash('sha256').update(expectedSeed1).digest();
-      expect(output.accounts[2].wotsSecretKey).toBe(expectedSeed2.toString('hex'));
+      const output2 = generateAccounts(3, masterSeed);
+      expect(output2).toEqual(output);
     });
+
+
+    test('should generate accounts deterministically from indexed master seed', () => {
+      const masterSeed = Buffer.alloc(32, 0);
+      const output = generateAccounts(3, masterSeed, 42);
+
+      expect(output.accounts).toHaveLength(3);
+
+      expect(output.accounts[0].wotsSecretKey).toBe('fd60812ba08b545bb63f2bd7b337b938c181bb9227dadf1352504b91a6bc17e8');
+      expect(output.accounts[1].wotsSecretKey).toBe('d49b1fd80eace9c266ceb6916bb687bcfd83c57ce4e835e06f43a9677cc8e652');
+      expect(output.accounts[2].wotsSecretKey).toBe('03d738507287bb859c540f9657b6642d43e615d0ab994668d2550ca8061a82f8');
+
+
+      const output2 = generateAccounts(3, masterSeed, 42);
+      expect(output2).toEqual(output);
+    });
+
+    
 
     test('should produce same accounts when called with same master seed', () => {
       const masterSeed = Buffer.alloc(32, 1);
@@ -268,8 +284,8 @@ describe('Address Generator - WOTS+ Keypair Generation', () => {
       // Verify deterministic output
       expect(output.accounts[0].accountTag).toHaveLength(40);  // 20 bytes = 40 hex chars
       expect(output.accounts[0].dsaHash).toHaveLength(80);     // 40 bytes = 80 hex chars
-      expect(output.accounts[0].wotsPublicKey).toMatch(/^7adab3007c3d9c99/);
-      expect(output.accounts[0].wotsSecretKey).toBe('0000000000000000000000000000000000000000000000000000000000000000');
+      expect(output.accounts[0].wotsPublicKey).toMatch(/^62661835e6a15b9ad/);
+      expect(output.accounts[0].wotsSecretKey).toBe('2c34ce1df23b838c5abf2a7f6437cca3d3067ed509ff25f11df6b11b582b51eb');
     });
   });
 });

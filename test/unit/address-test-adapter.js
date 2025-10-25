@@ -22,8 +22,8 @@ export function generateAccount(seed, accountIndex = 0) {
 /**
  * Adapter for generateAccounts - maps to SDK generateAccountKeypairs
  */
-export function generateAccounts(count, masterSeed = null) {
-  const options = masterSeed ? { masterSeed } : {};
+export function generateAccounts(count, masterSeed = null, startIndex = 0) {
+  const options = masterSeed ? { masterSeed, startIndex } : {};
   const keypairs = generateAccountKeypairs(count, options);
 
   return {

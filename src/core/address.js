@@ -68,8 +68,16 @@ export function generateAccountKeypair(options = {}) {
     throw new Error(`Seed must be a 32-byte Buffer, got ${seed?.length || 'invalid'} bytes`);
   }
 
+  if(index < 0)
+    throw new Error(`Index cannot be negative`);
+
+  const indexBytes = Buffer.alloc(8);
+  indexBytes.writeBigUInt64LE(BigInt(index), 0); //use 8 byte to allow +10^19 addresses
+  const derivedSeed = crypto.createHash('sha256').update(Buffer.concat([seed, indexBytes])).digest();
+
+
   // Generate WOTS+ keypair
-  const keypair = keygen(seed);
+  const keypair = keygen(derivedSeed);
 
   // Create the full public key with components (2208 bytes total)
   const publicKeyFull = Buffer.alloc(2208);
@@ -98,7 +106,7 @@ export function generateAccountKeypair(options = {}) {
     dsaHash,              // 40-byte one-time DSA public key hash
     accountTag,           // 20-byte persistent account identifier
     publicKey: publicKeyFull,
-    secretKey: seed
+    secretKey: derivedSeed
   };
 }
 
@@ -132,38 +140,30 @@ export function generateAccountKeypair(options = {}) {
  * const keypairs = generateAccountKeypairs(5);
  *
  * @example
- * // Generate 3 deterministic keypairs from master seed (3 different accounts)
- * const masterSeed = Buffer.from('0'.repeat(64), 'hex');
- * const keypairs = generateAccountKeypairs(3, { masterSeed });
- * // Each keypair uses: seed[0], SHA256(seed[0]), SHA256(SHA256(seed[0])), ...
+ * // Generate deterministic keypair from seed and index
+ * const seed = Buffer.from('0'.repeat(64), 'hex');
+ * const keypair = generateAccountKeypair(1, { masterSeed: seed, startIndex: 0 });
+ * // Each keypair uses: SHA256(masterSeed, startIndex), SHA256(masterSeed, startIndex + 1), ...
  */
 export function generateAccountKeypairs(count, options = {}) {
   if (typeof count !== 'number' || count < 1) {
     throw new Error(`Count must be a positive number, got ${count}`);
   }
 
-  const { masterSeed = null } = options;
+  const { masterSeed = null, startIndex = 0 } = options;
 
   if (masterSeed !== null && (!Buffer.isBuffer(masterSeed) || masterSeed.length !== 32)) {
     throw new Error(`Master seed must be a 32-byte Buffer, got ${masterSeed?.length || 'invalid'} bytes`);
   }
 
+  if(startIndex < 0)
+    throw new Error(`Start index cannot be negative`);
+
   const keypairs = [];
-  let currentSeed = masterSeed;
+  
 
-  for (let i = 0; i < count; i++) {
-    // Generate seed: either from master seed iteration or random
-    let seed;
-    if (masterSeed) {
-      // Deterministic: use current seed and hash for next iteration
-      seed = currentSeed;
-      currentSeed = crypto.createHash('sha256').update(currentSeed).digest();
-    } else {
-      // Random: generate new random seed for each keypair
-      seed = crypto.randomBytes(32);
-    }
-
-    const keypair = generateAccountKeypair({ seed, index: i });
+  for (let i = startIndex; i < startIndex + count; i++) {
+    const keypair = generateAccountKeypair({ seed: masterSeed ? masterSeed : crypto.randomBytes(32), index: masterSeed ? i : 0 /*startIndex only valid with masterSeed option*/});
     keypairs.push(keypair);
   }
 
