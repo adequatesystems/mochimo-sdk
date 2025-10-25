@@ -5,6 +5,16 @@ All notable changes to the Mochimo Node.js SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2025-10-25
+
+### Changed
+- Replaced the SHA-256 loop used for indexed key derivation with direct index-based derivation so generating the *n*-th keypair is now an `O(1)` operation rather than `O(n)`.
+- Updated `generateAccountKeypair()` to honor the `index` option by folding it into the deterministic seed material before key generation.
+- Synced deterministic derivation unit tests with the new index-driven logic to guard against regressions.
+
+### Notes
+- This release rolls forward every feature, documentation update, and CI improvement that previously lived in the unreleased `1.2.0` draft. If you were tracking that preview, you now get those changes on the supported `2.x` line.
+
 ## [2.0.1] - 2025-10-24
 
 ### Added
