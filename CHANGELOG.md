@@ -5,6 +5,19 @@ All notable changes to the Mochimo Node.js SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2025-10-30
+
+### Added
+- Introduced `getNetworkDsaHash()` for disaster recovery, returning the network-reported DSA hash so exchanges can validate the latest spend index before deriving a replacement keypair.
+
+### Changed
+- Updated `examples/exchange/5-recover-spend-index.js` to walk through a real-world recovery flow powered by `getNetworkDsaHash()`.
+- Refreshed `README.md` and `examples/exchange/EXCHANGE_INTEGRATION.md` with guidance on when and how to call the new helper during incident response.
+
+### Testing
+- Bumped the CI workflow expectation from 46 to 77 unit tests and confirmed the full suite passes.
+- Manually verified the recovery workflow against Mochimo mainnet transactions.
+
 ## [2.1.0] - 2025-10-25
 
 ### Changed

@@ -1,6 +1,6 @@
 {
   "name": "mochimo",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Production-ready Mochimo SDK for cryptocurrency exchange integration - deterministic key generation, transaction creation/signing, and network broadcasting",
   "type": "module",
   "main": "src/index.js",

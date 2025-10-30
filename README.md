@@ -2,7 +2,7 @@
 
 A production-ready Node.js SDK for the Mochimo blockchain. This SDK provides everything needed for cryptocurrency exchange integration with Masterseeds including: deterministic key generation, transaction creation/signing, and network broadcasting with post-quantum security.
 
-> **Version 2.0** - Complete rewrite focused on exchange integration with deterministic key derivation. See [CHANGELOG.md](CHANGELOG.md) for details.
+> **Version 2.x** - Complete rewrite focused on exchange integration with deterministic key derivation. See [CHANGELOG.md](CHANGELOG.md) for details.
 
 ## Quick Start
 
