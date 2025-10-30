@@ -838,7 +838,7 @@ spendIndex++;
 
 ### Example 4: Recover Spend Index
 
-**File:** `4-recover-spend-index.js`
+**File:** `5-recover-spend-index.js`
 
 **What it demonstrates:**
 - Account recovery from blockchain state
@@ -848,12 +848,15 @@ spendIndex++;
 
 **Key Code:**
 ```javascript
-// Get current ledger address from network
-const accountInfo = await fetch(
-  `${NETWORK_ENDPOINT}/balance/${accountTag}`
-);
-const networkAddress = accountInfo.address;  // 40-byte full address
-const networkDsaHash = networkAddress.slice(40);  // Last 20 bytes (DSA PK Hash component)
+import { getNetworkDsaHash, deriveKeypairForSpend } from 'mochimo';
+
+// Get current DSA Hash from network
+const networkDsaHash = await getNetworkDsaHash(accountTag, 'https://api.mochimo.org');
+
+if (!networkDsaHash) {
+  console.log('Account not found or never spent - spend index is 0');
+  return 0;
+}
 
 // Iterate to find matching spend index
 for (let testIndex = 0; testIndex < 1000; testIndex++) {
@@ -863,9 +866,11 @@ for (let testIndex = 0; testIndex < 1000; testIndex++) {
 
   if (derivedDsaHash === networkDsaHash) {
     console.log('Recovered spend index:', testIndex);
-    break;
+    return testIndex;
   }
 }
+
+throw new Error('Could not recover spend index within reasonable range');
 ```
 
 **Use Cases:**

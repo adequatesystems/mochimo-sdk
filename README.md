@@ -965,6 +965,53 @@ console.log('Found:', result.found);
 
 ---
 
+#### `getNetworkDsaHash(accountTag, apiUrl)`
+Retrieves just the current DSA Hash for an account tag from the network. This is a convenience function for spend index recovery scenarios.
+
+```javascript
+import { getNetworkDsaHash, deriveKeypairForSpend } from 'mochimo';
+
+// Recover spend index after database loss
+const networkDsaHash = await getNetworkDsaHash(
+  '9f810c2447a76e93b17ebff96c0b29952e4355f1',
+  'https://api.mochimo.org'
+);
+
+if (!networkDsaHash) {
+  console.log('Account not found or never spent - spend index is 0');
+} else {
+  // Iterate to find matching spend index
+  for (let spendIndex = 0; spendIndex < 1000; spendIndex++) {
+    const keypair = deriveKeypairForSpend(masterSeed, spendIndex, accountIndex);
+    // Extract DSA component (last 20 bytes of 40-byte implicit address)
+    const derivedDsaHash = keypair.dsaHash.toString('hex').slice(40, 80);
+    
+    if (derivedDsaHash === networkDsaHash) {
+      console.log('Recovered spend index:', spendIndex);
+      break;
+    }
+  }
+}
+```
+
+**Parameters**:
+- `accountTag` (string|Buffer) – Account tag to query (20 bytes / 40 hex characters)
+- `apiUrl` (string) – Mesh API endpoint, e.g. `https://api.mochimo.org`
+
+**Returns**: Promise resolving to:
+- `string` – Current DSA hash as hex string (40 characters / 20 bytes)
+- `null` – If account not found on blockchain or never spent
+
+**Use Cases**:
+- Disaster recovery after database loss
+- Spend index verification and audit
+- System migration validation
+- Network fork recovery
+
+**See**: [examples/exchange/5-recover-spend-index.js](examples/exchange/5-recover-spend-index.js) for complete recovery workflow
+
+---
+
 ### Low-Level Exports (Advanced Users)
 
 These functions are exported for advanced users who need low-level control. Most integrators should use the higher-level functions above.

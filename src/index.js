@@ -32,7 +32,7 @@ export { createTransaction, signTransaction, serializeTransaction } from './core
 
 // Network functionality
 export { broadcastTransaction, getNetworkStatus } from './network/broadcast.js';
-export { getAccountBalance, resolveTag } from './network/account.js';
+export { getAccountBalance, resolveTag, getNetworkDsaHash } from './network/account.js';
 
 // Utilities
 export {

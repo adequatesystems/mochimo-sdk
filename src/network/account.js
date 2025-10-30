@@ -169,6 +169,59 @@ export async function resolveTag(tag, apiUrl) {
 }
 
 /**
+ * Get the current DSA Hash for an Account Tag from the network
+ *
+ * This is a convenience function for spend index recovery scenarios.
+ * It queries the Mochimo network and returns just the DSA Hash component,
+ * which represents the current WOTS+ public key hash for the account.
+ *
+ * Use this when recovering spend indices after database loss/corruption:
+ * you can iterate through possible spend indices, derive keypairs, and
+ * compare their DSA hashes with this network value to find the current index.
+ *
+ * @param {string|Buffer} accountTag - Account Tag (20 bytes / 40 hex characters)
+ * @param {string} apiUrl - API endpoint URL (e.g., 'https://api.mochimo.org')
+ * @returns {Promise<string|null>} Current DSA Hash as hex string (40 chars), or null if account not found
+ *
+ * @example
+ * // Recover spend index after database loss
+ * const networkDsaHash = await getNetworkDsaHash(accountTag, 'https://api.mochimo.org');
+ * if (!networkDsaHash) {
+ *   // Account not found or never spent
+ *   return;
+ * }
+ *
+ * // Iterate to find matching spend index
+ * for (let spendIndex = 0; spendIndex < 1000; spendIndex++) {
+ *   const keypair = deriveKeypairForSpend(masterSeed, spendIndex, accountIndex);
+ *   const derivedDsaHash = keypair.dsaHash.toString('hex').slice(40, 80); // Extract DSA component
+ *
+ *   if (derivedDsaHash === networkDsaHash) {
+ *     // Found matching spend index
+ *     break;
+ *   }
+ * }
+ */
+export async function getNetworkDsaHash(accountTag, apiUrl) {
+  try {
+    const result = await resolveTag(accountTag, apiUrl);
+
+    if (!result.found || !result.dsaHash) {
+      return null;
+    }
+
+    return result.dsaHash;
+  } catch (error) {
+    // If account not found, return null (not an error for new accounts)
+    if (error.message.includes('not found') || error.message.includes('404')) {
+      return null;
+    }
+    // Re-throw other errors (network issues, invalid input, etc.)
+    throw error;
+  }
+}
+
+/**
  * Format balance from nanoMCM to MCM
  * @param {number|string} nanoMCM - Balance in nanoMCM
  * @returns {string} Formatted balance with MCM unit
