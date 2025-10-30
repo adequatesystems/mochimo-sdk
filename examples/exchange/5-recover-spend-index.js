@@ -21,7 +21,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { deriveKeypairForSpend } from '../../src/core/deterministic.js';
+import { deriveKeypairForSpend, getNetworkDsaHash } from '../../src/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -78,10 +78,51 @@ console.log('  This proves the current spend index based on blockchain state.');
 console.log();
 
 // ============================================================================
-// STEP 2: Query Network for Current Account State
+// STEP 2: Query Network for Current DSA Hash (Using SDK Helper)
 // ============================================================================
 
-console.log('Step 2: Query Network for Current Account State');
+console.log('Step 2: Query Network for Current DSA Hash');
+console.log('-'.repeat(70));
+console.log();
+
+console.log('Using SDK function: getNetworkDsaHash()');
+console.log();
+
+let networkDsaHash = null;
+
+try {
+  networkDsaHash = await getNetworkDsaHash(userAccount.account_tag, API_URL);
+
+  if (networkDsaHash) {
+    console.log('✓ Current DSA Hash Retrieved from Network:');
+    console.log('  DSA Hash:', networkDsaHash);
+    console.log();
+    console.log('ℹ️  This represents the WOTS+ public key hash currently');
+    console.log('  associated with this account on the blockchain.');
+    console.log();
+  } else {
+    console.log('ℹ️  Account not found or never spent');
+    console.log('  This is normal for new accounts that haven\'t sent transactions.');
+    console.log('  Current spend index: 0');
+    console.log();
+  }
+} catch (error) {
+  console.error('⚠️  Error querying network:', error.message);
+  console.error();
+  console.error('This could indicate:');
+  console.error('  - Network connectivity issues');
+  console.error('  - Invalid account tag format');
+  console.error('  - API endpoint unavailable');
+  console.error();
+  console.error('For this demo, we\'ll continue with iteration method.');
+  console.error();
+}
+
+// ============================================================================
+// STEP 3: Alternative - Manual Account Info Query (Old Method)
+// ============================================================================
+
+console.log('Step 3: Legacy Method - Manual Account Balance Query');
 console.log('-'.repeat(70));
 console.log();
 
@@ -127,11 +168,8 @@ async function getAccountInfo(accountTag) {
     }
     console.log();
 
-    // For this demo, we need to extract the DSA Hash from transaction history
-    // or use the search API to find the last transaction
-    console.log('ℹ️  Note: To get the current DSA Hash, we need to check');
-    console.log('  transaction history or use the tag resolution endpoint.');
-    console.log('  For this example, we\'ll iterate to find it.');
+    console.log('ℹ️  Note: The SDK\'s getNetworkDsaHash() function above');
+    console.log('  provides a simpler way to get just the DSA Hash.');
     console.log();
 
     return data;
@@ -221,25 +259,28 @@ async function getCurrentDsaFromTransactions(accountTag) {
 await getCurrentDsaFromTransactions(userAccount.account_tag);
 
 // ============================================================================
-// STEP 4: Recover Spend Index by Iteration
+// STEP 5: Recover Spend Index by Iteration
 // ============================================================================
 
-console.log('Step 4: Recover Spend Index by Iteration');
+console.log('Step 5: Recover Spend Index by Iteration');
 console.log('-'.repeat(70));
 console.log();
 
-console.log('🔍 Recovery Method: Brute Force Iteration');
+console.log('🔍 Recovery Method: Iterative Keypair Comparison');
 console.log('  We will generate WOTS+ keypairs for each spend index');
-console.log('  and compare with known/expected values.');
+console.log('  and compare DSA hashes until we find a match.');
 console.log();
 
-console.log('⚠️  In production, you would:');
-console.log('  1. Query network for current DSA Hash using tag resolution API');
-console.log('  2. Iterate through spend indices until DSA Hash matches');
-console.log('  3. That tells you the current spend index');
+if (networkDsaHash) {
+  console.log('✓ Using DSA Hash from network:', networkDsaHash.substring(0, 20) + '...');
+  console.log('  We will iterate to find which spend index produces this hash.');
+} else {
+  console.log('ℹ️  No DSA Hash available from network (account not spent)');
+  console.log('  We will verify our stored spend index by deriving keypairs.');
+}
 console.log();
 
-async function recoverSpendIndex(masterSeed, accountIndex, accountTag, currentStoredIndex) {
+async function recoverSpendIndex(masterSeed, accountIndex, accountTag, currentStoredIndex, targetDsaHash) {
   console.log('Starting spend index recovery...');
   console.log('  Account Index:', accountIndex);
   console.log('  Account Tag:', accountTag);
@@ -256,30 +297,57 @@ async function recoverSpendIndex(masterSeed, accountIndex, accountTag, currentSt
   const keypairs = [];
   for (let spendIndex = 0; spendIndex <= Math.min(currentStoredIndex + 5, MAX_ITERATIONS); spendIndex++) {
     const keypair = deriveKeypairForSpend(masterSeed, spendIndex, accountIndex);
+    
+    // Extract just the DSA Hash component (last 20 bytes of the 40-byte implicit address)
+    const dsaHashComponent = keypair.dsaHash.toString('hex').slice(40, 80);
+    
     keypairs.push({
       spendIndex,
       accountTag: keypair.accountTagHex,
-      dsaHash: keypair.dsaHashHex
+      dsaHash: keypair.dsaHashHex,
+      dsaHashComponent
     });
 
+    // If we have a target DSA Hash from the network, check for match
+    if (targetDsaHash && dsaHashComponent === targetDsaHash) {
+      console.log(`🎯 MATCH FOUND at spend index ${spendIndex}!`);
+      console.log(`  Network DSA Hash: ${targetDsaHash}`);
+      console.log(`  Derived DSA Hash: ${dsaHashComponent}`);
+      foundIndex = spendIndex;
+      break;
+    }
+
     if (spendIndex <= 5 || spendIndex === currentStoredIndex || spendIndex === currentStoredIndex + 1) {
-      console.log(`  Spend ${spendIndex}: DSA = ${keypair.dsaHashHex.substring(0, 30)}...`);
+      console.log(`  Spend ${spendIndex}: DSA Component = ${dsaHashComponent.substring(0, 30)}...`);
     }
   }
   console.log();
 
-  // In production: Compare each DSA Hash with the network's current value
-  // For this demo, we'll verify our stored index matches
+  // Verification against stored index
   console.log('📊 Verification:');
-  console.log('  Stored spend index:', currentStoredIndex);
-
-  if (currentStoredIndex < keypairs.length) {
+  
+  if (targetDsaHash && foundIndex !== -1) {
+    console.log('  ✓ Recovered from network DSA Hash');
+    console.log('  Found spend index:', foundIndex);
+    console.log('  Stored spend index:', currentStoredIndex);
+    console.log('  Match:', foundIndex === currentStoredIndex ? '✓ Yes' : '✗ No - DATABASE OUT OF SYNC!');
+    console.log();
+    
+    if (foundIndex !== currentStoredIndex) {
+      console.log('⚠️  WARNING: Stored spend index does not match blockchain state!');
+      console.log('  This indicates database corruption or missed transaction.');
+      console.log('  Update database to use recovered index:', foundIndex);
+      console.log();
+    }
+  } else if (currentStoredIndex < keypairs.length) {
+    console.log('  No network DSA Hash available (account not spent)');
+    console.log('  Verifying stored spend index:', currentStoredIndex);
+    
     const storedKeypair = keypairs[currentStoredIndex];
-    console.log('  Expected DSA Hash:', storedKeypair.dsaHash);
+    console.log('  DSA Hash for index', currentStoredIndex + ':', storedKeypair.dsaHashComponent);
     console.log();
 
-    console.log('✓ Verification successful!');
-    console.log('  The stored spend index matches the derived keypair.');
+    console.log('✓ Stored index verified (will be current after first spend)');
     foundIndex = currentStoredIndex;
   }
 
@@ -296,14 +364,15 @@ const recoveredIndex = await recoverSpendIndex(
   masterSeed,
   userAccount.account_index,
   userAccount.account_tag,
-  userAccount.spend_index
+  userAccount.spend_index,
+  networkDsaHash  // Pass the DSA Hash we got from getNetworkDsaHash()
 );
 
 // ============================================================================
-// STEP 5: Production Implementation Example
+// STEP 6: Production Implementation Example
 // ============================================================================
 
-console.log('Step 5: Production Recovery Implementation');
+console.log('Step 6: Production Recovery Implementation');
 console.log('-'.repeat(70));
 console.log();
 
@@ -311,16 +380,24 @@ console.log('📝 In a real exchange, the recovery process would be:');
 console.log();
 
 console.log('```javascript');
+console.log('import { getNetworkDsaHash, deriveKeypairForSpend } from "mochimo";');
+console.log();
 console.log('async function recoverSpendIndexFromNetwork(accountTag, masterSeed, accountIndex) {');
 console.log('  // 1. Query network for current DSA Hash');
-console.log('  const networkDsaHash = await getNetworkDsaHash(accountTag);');
+console.log('  const networkDsaHash = await getNetworkDsaHash(accountTag, "https://api.mochimo.org");');
+console.log('  ');
+console.log('  if (!networkDsaHash) {');
+console.log('    // Account not found or never spent - spend index is 0');
+console.log('    return 0;');
+console.log('  }');
 console.log('  ');
 console.log('  // 2. Iterate through spend indices');
 console.log('  for (let spendIndex = 0; spendIndex < MAX_ITERATIONS; spendIndex++) {');
 console.log('    const keypair = deriveKeypairForSpend(masterSeed, spendIndex, accountIndex);');
 console.log('    ');
-console.log('    // 3. Check if DSA Hash matches network');
-console.log('    if (keypair.dsaHashHex === networkDsaHash) {');
+console.log('    // 3. Extract DSA Hash component and compare with network');
+console.log('    const derivedDsaHash = keypair.dsaHash.toString("hex").slice(40, 80);');
+console.log('    if (derivedDsaHash === networkDsaHash) {');
 console.log('      console.log(`Found matching spend index: ${spendIndex}`);');
 console.log('      ');
 console.log('      // 4. Update database');

@@ -135,7 +135,7 @@ jobs:
 
       - name: 🧪 Run unit tests
         run: |
-          echo "Running all 46 unit tests..."
+          echo "Running all 77 unit tests..."
           npm test
 
       - name: 📊 Test summary
@@ -145,8 +145,9 @@ jobs:
           echo "Test Results Summary:"
           echo "- Address tests: Should be 21/21 ✅"
           echo "- WOTS tests: Should be 14/14 ✅"
+          echo "- Deterministic tests: Should be 31/31 ✅"
           echo "- Transaction SDK tests: Should be 11/11 ✅"
-          echo "- Total: Should be 46/46 ✅"
+          echo "- Total: Should be 77/77 ✅"
           echo "================================"
 
   package-validation:
